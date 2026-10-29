@@ -1,9 +1,11 @@
 import { mkdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Browser, type BrowserContext, type Page } from '@playwright/test';
 
-const evidenceDirectory = fileURLToPath(new URL('../../../evidencias/prototipo/', import.meta.url));
+const evidenceDirectory = process.env.JACSA_EVIDENCE_DIR === undefined
+  ? fileURLToPath(new URL('../../../evidencias/qa-baseline/', import.meta.url))
+  : resolve(process.env.JACSA_EVIDENCE_DIR);
 const password = 'Jacsa2026!';
 
 type BrowserIssue = { area: string; detail: string };
@@ -16,6 +18,12 @@ function trackBrowserIssues(page: Page, area: string, issues: BrowserIssue[]) {
   page.on('response', (response) => {
     if (response.status() >= 500) issues.push({ area, detail: `HTTP ${response.status()} ${response.url()}` });
   });
+}
+
+function configuredBaseURL(): string {
+  const baseURL = test.info().project.use.baseURL;
+  if (typeof baseURL !== 'string') throw new Error('La configuración Playwright debe definir baseURL.');
+  return baseURL;
 }
 
 async function login(page: Page, username: string, roleHeading: string) {
@@ -32,8 +40,8 @@ async function capture(page: Page, filename: string) {
   await page.screenshot({ path: join(evidenceDirectory, filename), fullPage: true, animations: 'disabled' });
 }
 
-async function newContext(browser: Browser, contexts: BrowserContext[]) {
-  const context = await browser.newContext({ viewport: { width: 1470, height: 1000 } });
+async function newContext(browser: Browser, contexts: BrowserContext[], baseURL: string) {
+  const context = await browser.newContext({ baseURL, viewport: { width: 1470, height: 1000 } });
   contexts.push(context);
   return context;
 }
@@ -77,12 +85,13 @@ async function assertNoMobileHorizontalOverflow(page: Page, area: string) {
 }
 
 test('recorrido integrado: solicitud, cotización, abastecimiento, producción y portal', async ({ browser }) => {
+  const baseURL = configuredBaseURL();
   mkdirSync(evidenceDirectory, { recursive: true });
   const issues: BrowserIssue[] = [];
   const contexts: BrowserContext[] = [];
 
   try {
-    const clientContext = await newContext(browser, contexts);
+    const clientContext = await newContext(browser, contexts, baseURL);
     const clientPage = await clientContext.newPage();
     trackBrowserIssues(clientPage, 'cliente', issues);
     await login(clientPage, 'cliente', 'Hola, Cliente Alfa.');
@@ -102,7 +111,7 @@ test('recorrido integrado: solicitud, cotización, abastecimiento, producción y
     const requestId = (await requestSuccess.innerText()).match(/request-[a-f\d-]+/i)?.[0];
     expect(requestId, 'La UI debe devolver el identificador de la solicitud creada').toBeTruthy();
 
-    const managerContext = await newContext(browser, contexts);
+    const managerContext = await newContext(browser, contexts, baseURL);
     const managerPage = await managerContext.newPage();
     trackBrowserIssues(managerPage, 'manager', issues);
     await login(managerPage, 'rodrigo', 'Buen día, Rodrigo.');
@@ -134,7 +143,7 @@ test('recorrido integrado: solicitud, cotización, abastecimiento, producción y
     await expect(managerPage.getByText('88 g', { exact: true })).toBeVisible();
     await capture(managerPage, '03stockfaltante.png');
 
-    const adminContext = await newContext(browser, contexts);
+    const adminContext = await newContext(browser, contexts, baseURL);
     const adminPage = await adminContext.newPage();
     trackBrowserIssues(adminPage, 'admin', issues);
     await login(adminPage, 'lorena', 'Buen día, Lorena.');
@@ -167,7 +176,7 @@ test('recorrido integrado: solicitud, cotización, abastecimiento, producción y
     await expect(newOrder).toContainText('Máquina 04');
     await capture(managerPage, '04tableropedidos.png');
 
-    const operatorContext = await newContext(browser, contexts);
+    const operatorContext = await newContext(browser, contexts, baseURL);
     const operatorPage = await operatorContext.newPage();
     trackBrowserIssues(operatorPage, 'operario', issues);
     await login(operatorPage, 'operario', 'Cola de producción');
@@ -218,7 +227,7 @@ test('recorrido integrado: solicitud, cotización, abastecimiento, producción y
     await expect(clientNotices).toHaveCount(3);
     await expect(clientNotices.filter({ hasText: 'En producción' })).toHaveCount(1);
     await expect(clientNotices.filter({ hasText: 'Listo' })).toHaveCount(1);
-    const ownSnapshotResponse = await clientContext.request.get('http://127.0.0.1:3001/api/bootstrap');
+    const ownSnapshotResponse = await clientContext.request.get(new URL('/api/bootstrap', baseURL).toString());
     expect(ownSnapshotResponse.status()).toBe(200);
     const ownSnapshot = await ownSnapshotResponse.json();
     expect(ownSnapshot.notifications).toHaveLength(3);
@@ -228,7 +237,7 @@ test('recorrido integrado: solicitud, cotización, abastecimiento, producción y
     expect(ownSnapshot.notifications.every((notice: { clientId: string }) => notice.clientId === 'CLI-ALFA')).toBe(true);
     await capture(clientPage, '06portalcliente.png');
 
-    const betaContext = await newContext(browser, contexts);
+    const betaContext = await newContext(browser, contexts, baseURL);
     const betaPage = await betaContext.newPage();
     trackBrowserIssues(betaPage, 'cliente Beta', issues);
     await login(betaPage, 'cliente2', 'Hola, Cliente Beta.');
@@ -244,7 +253,7 @@ test('recorrido integrado: solicitud, cotización, abastecimiento, producción y
 });
 
 test('configurador: coincidencia exacta, desarrollo manual, límites y recuperación del precio', async ({ browser }) => {
-  const context = await browser.newContext({ viewport: { width: 1470, height: 1000 } });
+  const context = await browser.newContext({ baseURL: configuredBaseURL(), viewport: { width: 1470, height: 1000 } });
   try {
     const page = await context.newPage();
     await page.goto('/#/cotizador');
@@ -314,7 +323,7 @@ test('estimaciones públicas especiales y sin equivalente no muestran importes',
 });
 
 test('cliente autenticado no puede abrir la ruta de cotizaciones del equipo', async ({ browser }) => {
-  const context = await browser.newContext({ viewport: { width: 1470, height: 1000 } });
+  const context = await browser.newContext({ baseURL: configuredBaseURL(), viewport: { width: 1470, height: 1000 } });
   try {
     const page = await context.newPage();
     await login(page, 'cliente', 'Hola, Cliente Alfa.');
@@ -329,7 +338,7 @@ test('cliente autenticado no puede abrir la ruta de cotizaciones del equipo', as
 
 test('login móvil conserva etiquetas, foco visible y no desborda el viewport', async ({ browser }) => {
   mkdirSync(evidenceDirectory, { recursive: true });
-  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const context = await browser.newContext({ baseURL: configuredBaseURL(), viewport: { width: 390, height: 844 } });
   try {
     const page = await context.newPage();
     await page.goto('/#/login');
