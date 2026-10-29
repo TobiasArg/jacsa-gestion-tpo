@@ -1,15 +1,16 @@
 import { ArrowRight, BellRing, Boxes, CalendarDays, ClipboardList, FileText, PackageCheck, Sparkles } from 'lucide-react';
 import { Badge, Button, Card, EmptyState, PageHeading } from './components';
 import type { Snapshot } from './types';
-import { articleName, formatCents, formatDate, formatDateTime, unitLabel } from './utils';
+import { articleName, formatCents, formatDate, formatDateTime, isActiveOrder, unitLabel } from './utils';
 
 export function Portal({ snapshot, onCotizar }: { snapshot: Snapshot; onCotizar: () => void }) {
   const client = snapshot.clients.find((item) => item.id === snapshot.user.clientId);
-  const quotes = [...snapshot.quotes].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  // Drafts are never shown to the client, even if an older API still returns them.
+  const quotes = snapshot.quotes.filter((quote) => quote.status !== 'Pendiente').sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const orders = [...snapshot.orders].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
   const requests = [...snapshot.requests].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const notifications = [...snapshot.notifications].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  const activeOrders = orders.filter((order) => !['Entregado', 'Cobrado'].includes(order.status));
+  const activeOrders = orders.filter(isActiveOrder);
 
   return (
     <div className="page-content portal-content">
@@ -19,7 +20,7 @@ export function Portal({ snapshot, onCotizar }: { snapshot: Snapshot; onCotizar:
         <Button onClick={onCotizar}>Nueva solicitud <ArrowRight size={16} /></Button>
       </div>
 
-      <div className="portal-summary-strip"><div><span className="portal-summary-icon"><FileText size={17} /></span><span><b>{quotes.length}</b><small>Cotizaciones</small></span></div><i /><div><span className="portal-summary-icon"><Boxes size={17} /></span><span><b>{activeOrders.length}</b><small>Pedidos activos</small></span></div><i /><div><span className="portal-summary-icon"><ClipboardList size={17} /></span><span><b>{requests.length}</b><small>Solicitudes</small></span></div></div>
+      <div className="portal-summary-strip"><div><span className="portal-summary-icon"><FileText size={17} /></span><span><b>{quotes.length}</b><small>Cotizaciones</small></span></div><i /><div><span className="portal-summary-icon"><Boxes size={17} /></span><span><b>{activeOrders.length}</b><small>Pedidos en curso</small></span></div><i /><div><span className="portal-summary-icon"><ClipboardList size={17} /></span><span><b>{requests.length}</b><small>Solicitudes</small></span></div></div>
 
       <div className="portal-grid">
         <Card className="portal-section">
@@ -33,8 +34,8 @@ export function Portal({ snapshot, onCotizar }: { snapshot: Snapshot; onCotizar:
           <div className="section-heading"><div><p className="eyebrow">Producción</p><h2>Mis pedidos</h2></div><span className="portal-section-count">{orders.length}</span></div>
           {orders.length ? <div className="portal-order-list">{orders.map((order) => <article className="portal-order-row" key={order.id}>
             <div className="portal-record-top"><span className="quote-number">{order.number}</span><Badge>{order.status}</Badge></div><h3>{articleName(snapshot.articles, order.articleId)}</h3><div className="portal-order-progress"><div className="progress-copy"><span>{order.producedUnits} / {order.units} unidades</span><b>{order.units ? Math.round(order.producedUnits / order.units * 100) : 0}%</b></div><div className="progress-track"><span style={{ width: `${order.units ? Math.min(100, order.producedUnits / order.units * 100) : 0}%` }} /></div></div><div className="portal-record-bottom"><span><CalendarDays size={14} /> Entrega {formatDate(order.dueDate)}</span><span>{order.qualityChecked ? <><PackageCheck size={14} /> Calidad verificada</> : `${order.quantity} ${unitLabel(order.unit, order.quantity)}`}</span></div>
-          </article>)}</div> : <EmptyState title="No hay pedidos activos" detail="Los pedidos confirmados aparecen aquí con su avance y fecha prevista." />}
-          {activeOrders.length === 0 && orders.length > 0 && <div className="portal-closed-note">No hay pedidos en curso. Tus entregas anteriores quedan visibles en este historial.</div>}
+          </article>)}</div> : <EmptyState title="Todavía no hay pedidos" detail="Los pedidos confirmados aparecen aquí con su avance y fecha prevista." />}
+          {activeOrders.length === 0 && orders.length > 0 && <div className="portal-closed-note">No hay pedidos en curso (pendiente, en producción o listo). Las entregas y cobros quedan visibles en este historial.</div>}
         </Card>
       </div>
 

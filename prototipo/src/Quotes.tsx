@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { ArrowRight, BadgeCheck, CalendarDays, Check, Clock3, FilePlus2, ReceiptText, Send } from 'lucide-react';
 import { ActionFeedback, Badge, Button, Card, EmptyState, Field, Input, PageHeading, Select } from './components';
-import type { Snapshot, Unit } from './types';
+import { MARKUP_MAX, maxQuantityFor, todayUtc, VALID_DAYS_MAX } from './limits';
+import type { QuoteStatus, Snapshot, Unit } from './types';
 import { articleName, clientName, dateAfterDays, formatCents, formatDate, formatDateTime, unitLabel } from './utils';
 import { useAction } from './useAction';
 
@@ -47,13 +48,13 @@ export function Quotes({ snapshot, refresh, onUnauthorized, requestId, onClearRe
     else setArticleId('');
     setQuantity(String(request.quantity));
     setUnit(request.unit);
-    const matchedClient = request.clientId
-      ? request.clientId
-      : snapshot.clients.find((client) => client.cuit === request.cuit || client.email.toLocaleLowerCase('es') === request.email.toLocaleLowerCase('es'))?.id;
-    setClientId(matchedClient ?? '');
+    // Only an account-bound request preselects its client; anonymous ones need an explicit choice.
+    setClientId(request.clientId ?? '');
   }, [selectedRequestId]);
 
   const selectedRequest = snapshot.requests.find((request) => request.id === selectedRequestId);
+  const anonymousRequest = Boolean(selectedRequest && !selectedRequest.clientId);
+  const maxQuantity = maxQuantityFor(unit);
 
   async function createQuote(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -62,8 +63,16 @@ export function Quotes({ snapshot, refresh, onUnauthorized, requestId, onClearRe
     const quantityNumber = Number(quantity);
     const markupNumber = Number(markupPercent);
     const daysNumber = Number(validDays);
-    if (!clientId || !articleId || !Number.isSafeInteger(quantityNumber) || quantityNumber < 1 || !Number.isFinite(markupNumber) || markupNumber < 0 || !Number.isSafeInteger(daysNumber) || daysNumber < 1) {
-      setFormError('Revisa cliente, artículo, cantidad, recargo sobre costo y vigencia antes de continuar.');
+    if (!clientId || !articleId) {
+      setFormError(selectedRequest && !selectedRequest.clientId ? 'Selecciona el cliente: la solicitud no tiene cuenta y quedará vinculada al cliente que elijas.' : 'Selecciona cliente y artículo antes de continuar.');
+      return;
+    }
+    if (!Number.isSafeInteger(quantityNumber) || quantityNumber < 1 || quantityNumber > maxQuantity) {
+      setFormError(`La cantidad debe ser un entero entre 1 y ${maxQuantity.toLocaleString('es-AR')} ${unitLabel(unit, maxQuantity)}.`);
+      return;
+    }
+    if (!Number.isFinite(markupNumber) || markupNumber < 0 || markupNumber > MARKUP_MAX || !Number.isSafeInteger(daysNumber) || daysNumber < 1 || daysNumber > VALID_DAYS_MAX) {
+      setFormError(`El recargo va de 0 a ${MARKUP_MAX} % y la vigencia de 1 a ${VALID_DAYS_MAX} días.`);
       return;
     }
     const result = await action.run<{ id: string }>('create-quote', '/api/quotes', {
@@ -75,7 +84,7 @@ export function Quotes({ snapshot, refresh, onUnauthorized, requestId, onClearRe
       markupPercent: markupNumber,
       validDays: daysNumber,
       allowStale,
-    }, 'Cotización creada en estado pendiente.');
+    }, 'Cotización creada como borrador (Pendiente). El cliente la verá recién al enviarla.');
     if (result) {
       setSelectedRequestId('');
       setAllowStale(false);
@@ -112,20 +121,20 @@ export function Quotes({ snapshot, refresh, onUnauthorized, requestId, onClearRe
                 {requests.map((request) => <option value={request.id} key={request.id}>{request.company} · {request.quantity} {unitLabel(request.unit, request.quantity)} · {formatDate(request.createdAt)}</option>)}
               </Select>
             </Field>
-            {selectedRequest && <div className="request-context"><span className="request-context-label">SOLICITUD SELECCIONADA · {selectedRequest.id}</span><p><b>{selectedRequest.company}</b> · CUIT {selectedRequest.cuit}</p><small>{selectedRequest.email}{selectedRequest.phone ? ` · ${selectedRequest.phone}` : ' · Sin teléfono informado'}</small><p>{selectedRequest.special ? 'Desarrollo especial' : articleName(snapshot.articles, selectedRequest.articleId)} · {selectedRequest.quantity} {unitLabel(selectedRequest.unit, selectedRequest.quantity)}</p><small>{selectedRequest.notes || 'Sin notas adicionales.'} Verifica los datos y asocia el cliente antes de crear.</small></div>}
-            <Field label="Cliente" htmlFor="client"><Select id="client" value={clientId} onChange={(event) => setClientId(event.target.value)} required><option value="">Selecciona el cliente</option>{snapshot.clients.map((client) => <option value={client.id} key={client.id}>{client.name} · {client.cuit}</option>)}</Select></Field>
+            {selectedRequest && <div className="request-context"><span className="request-context-label">SOLICITUD SELECCIONADA · {selectedRequest.id}</span><p><b>{selectedRequest.company}</b> · CUIT {selectedRequest.cuit}</p><small>{selectedRequest.email}{selectedRequest.phone ? ` · ${selectedRequest.phone}` : ' · Sin teléfono informado'}</small><p>{selectedRequest.special ? 'Desarrollo especial' : articleName(snapshot.articles, selectedRequest.articleId)} · {selectedRequest.quantity} {unitLabel(selectedRequest.unit, selectedRequest.quantity)}</p><small>{selectedRequest.notes || 'Sin notas adicionales.'}</small><small className="request-context-link">{anonymousRequest ? 'Solicitud sin cuenta: elegí el cliente; al crear la cotización quedará vinculada a él.' : `Vinculada por sesión a ${clientName(snapshot.clients, selectedRequest.clientId)}.`}</small></div>}
+            <Field label="Cliente" htmlFor="client" hint={anonymousRequest ? 'Sin preselección automática por correo ni CUIT.' : undefined}><Select id="client" value={clientId} onChange={(event) => setClientId(event.target.value)} required disabled={Boolean(selectedRequest?.clientId)}><option value="">Selecciona el cliente</option>{snapshot.clients.map((client) => <option value={client.id} key={client.id}>{client.name} · {client.cuit}</option>)}</Select></Field>
             <Field label="Artículo" htmlFor="article"><Select id="article" value={articleId} onChange={(event) => { setArticleId(event.target.value); setAllowStale(false); }} required><option value="">Selecciona el artículo</option>{snapshot.articles.map((article) => <option value={article.id} key={article.id}>{article.code} · {article.name}{article.stale ? ' · revisar costo' : ''}</option>)}</Select></Field>
             <div className="field-row">
-              <Field label="Cantidad" htmlFor="quote-quantity"><Input id="quote-quantity" type="number" min="1" step="1" value={quantity} onChange={(event) => setQuantity(event.target.value)} required /></Field>
+              <Field label="Cantidad" htmlFor="quote-quantity" hint={`Máximo ${maxQuantity.toLocaleString('es-AR')} (1.000.000 unidades).`}><Input id="quote-quantity" type="number" inputMode="numeric" min="1" max={maxQuantity} step="1" value={quantity} onChange={(event) => setQuantity(event.target.value)} required /></Field>
               <Field label="Unidad" htmlFor="quote-unit"><Select id="quote-unit" value={unit} onChange={(event) => setUnit(event.target.value as Unit)}><option value="unidad">Unidad</option><option value="gruesa">Gruesa</option><option value="100pares">100 pares</option></Select></Field>
             </div>
             <div className="field-row">
-              <Field label="Recargo sobre costo (%)" htmlFor="markup"><Input id="markup" type="number" min="0" step="0.01" value={markupPercent} onChange={(event) => setMarkupPercent(event.target.value)} required /></Field>
-              <Field label="Vigencia (días)" htmlFor="valid-days"><Input id="valid-days" type="number" min="1" step="1" value={validDays} onChange={(event) => setValidDays(event.target.value)} required /></Field>
+              <Field label="Recargo sobre costo (%)" htmlFor="markup"><Input id="markup" type="number" inputMode="decimal" min="0" max={MARKUP_MAX} step="0.01" value={markupPercent} onChange={(event) => setMarkupPercent(event.target.value)} required /></Field>
+              <Field label="Vigencia (días)" htmlFor="valid-days"><Input id="valid-days" type="number" inputMode="numeric" min="1" max={VALID_DAYS_MAX} step="1" value={validDays} onChange={(event) => setValidDays(event.target.value)} required /></Field>
             </div>
             {selectedArticleIsStale && <><div className="stale-warning"><Clock3 size={15} /><span>El costo base excede la vigencia del precio de insumo. La estimación no es segura hasta confirmar una excepción.</span></div><label className="consent-check stale-check"><input type="checkbox" checked={allowStale} onChange={(event) => setAllowStale(event.target.checked)} /><span>Confirmo cotizar con un precio de insumo desactualizado.</span></label></>}
             <Button type="submit" disabled={action.busy !== null || snapshot.clients.length === 0 || snapshot.articles.length === 0 || (selectedArticleIsStale && !allowStale)}>{action.busy === 'create-quote' ? 'Creando…' : 'Crear cotización'}<ArrowRight size={16} /></Button>
-            <p className="form-footnote">La propuesta queda pendiente; enviar y aceptar son pasos separados.</p>
+            <p className="form-footnote">La propuesta queda como borrador, invisible para el cliente; enviar y aceptar son pasos separados.</p>
           </form>
         </Card>
 
@@ -141,10 +150,11 @@ export function Quotes({ snapshot, refresh, onUnauthorized, requestId, onClearRe
               <div className="quote-record-actions">
                 {quote.status === 'Pendiente' && <Button variant="secondary" disabled={busy || action.busy !== null} onClick={() => void action.run(quote.id, `/api/quotes/${encodeURIComponent(quote.id)}/send`, {}, 'Cotización enviada y aviso asentado en bandeja.')}>{busy ? 'Enviando…' : <><Send size={15} /> Enviar propuesta</>}</Button>}
                 {quote.status === 'Enviada' && <Button variant="secondary" disabled={busy || action.busy !== null} onClick={() => void action.run(quote.id, `/api/quotes/${encodeURIComponent(quote.id)}/accept`, {}, 'Cotización aceptada.')}>{busy ? 'Actualizando…' : <><BadgeCheck size={16} /> Registrar aceptación</>}</Button>}
-                {quote.status === 'Aceptada' && <div className="convert-order-control"><Field label="Fecha prevista" htmlFor={`due-${quote.id}`}><Input id={`due-${quote.id}`} type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} /></Field><Button disabled={busy || action.busy !== null || !dueDate} onClick={() => void action.run<{ id: string }>(quote.id, `/api/quotes/${encodeURIComponent(quote.id)}/order`, { dueDate }, 'Pedido creado; la reserva se actualizó en el inventario.')}>{busy ? 'Creando pedido…' : <><Check size={15} /> Convertir en pedido</>}</Button></div>}
+                {quote.status === 'Aceptada' && <div className="convert-order-control"><Field label="Fecha prevista" htmlFor={`due-${quote.id}`}><Input id={`due-${quote.id}`} type="date" min={todayUtc()} value={dueDate} onChange={(event) => setDueDate(event.target.value)} /></Field><Button disabled={busy || action.busy !== null || !dueDate || dueDate < todayUtc()} onClick={() => void action.run<{ id: string }>(quote.id, `/api/quotes/${encodeURIComponent(quote.id)}/order`, { dueDate }, 'Pedido creado; la reserva se actualizó en el inventario.')}>{busy ? 'Creando pedido…' : <><Check size={15} /> Convertir en pedido</>}</Button></div>}
                 {quote.status === 'Vencida' && <span className="expired-note"><CalendarDays size={15} /> Propuesta vencida</span>}
                 {quote.status === 'Rechazada' && <span className="expired-note">Propuesta rechazada</span>}
               </div>
+              <p className="quote-next-step">{quoteNextStep(quote.status)}</p>
               <div className="quote-created-at">Creada {formatDateTime(quote.createdAt)}</div>
             </Card>;
           })}</div> : <Card className="quote-empty"><EmptyState title="Sin cotizaciones todavía" detail="Crea una propuesta desde una solicitud o empieza con un cliente." /></Card>}
@@ -152,4 +162,12 @@ export function Quotes({ snapshot, refresh, onUnauthorized, requestId, onClearRe
       </div>
     </div>
   );
+}
+
+function quoteNextStep(status: QuoteStatus): string {
+  if (status === 'Pendiente') return 'Borrador: el cliente todavía no la ve. Siguiente paso: enviar propuesta.';
+  if (status === 'Enviada') return 'Visible en el portal del cliente. Siguiente paso: registrar la aceptación.';
+  if (status === 'Aceptada') return 'Siguiente paso: convertir en pedido; la conversión es única.';
+  if (status === 'Vencida') return 'Vencida: no admite envío, aceptación ni conversión.';
+  return 'Sin acciones disponibles.';
 }

@@ -71,6 +71,7 @@ export default function App() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [logoutBusy, setLogoutBusy] = useState(false);
   const [logoutError, setLogoutError] = useState('');
+  const [sessionNotice, setSessionNotice] = useState('');
   const bootstrapPromise = useRef<Promise<boolean> | null>(null);
   const rerunBootstrap = useRef(false);
 
@@ -85,6 +86,7 @@ export default function App() {
   }, []);
 
   const onUnauthorized = useCallback(() => {
+    setSessionNotice('Tu sesión expiró o se cerró en otro lugar. Ingresa nuevamente para continuar; no se guardaron cambios pendientes.');
     setUser(null);
     setSnapshot(null);
     setLoadState('ready');
@@ -202,6 +204,7 @@ export default function App() {
   const selectedTitle = pageNames[location.route] ?? 'JACSA Gestión';
 
   async function handleLogin(loggedInUser: User) {
+    setSessionNotice('');
     setUser(loggedInUser);
     setSnapshot(null);
     setLoadState('loading');
@@ -227,13 +230,14 @@ export default function App() {
     setLogoutError('');
     try {
       await api.post('/api/logout', {});
+      setSessionNotice('');
       setUser(null);
       setSnapshot(null);
       setSyncError('');
       setLoadState('ready');
       navigate('login', undefined, true);
     } catch (caught) {
-      if (caught instanceof ApiError && caught.status === 401) onUnauthorized();
+      if (caught instanceof ApiError && caught.status === 401) { onUnauthorized(); setSessionNotice(''); }
       else setLogoutError(caught instanceof ApiError ? caught.message : 'No se pudo cerrar la sesión.');
     } finally {
       setLogoutBusy(false);
@@ -270,7 +274,7 @@ export default function App() {
   if (!user) {
     return location.route === 'cotizador'
       ? <PublicQuote onBack={() => navigate('login')} />
-      : <Login onLogin={(loggedInUser) => void handleLogin(loggedInUser)} onOpenCotizador={() => navigate('cotizador')} />;
+      : <Login notice={sessionNotice} onLogin={(loggedInUser) => void handleLogin(loggedInUser)} onOpenCotizador={() => navigate('cotizador')} />;
   }
 
   if (loadState === 'loading' || !snapshot) return <LoadingScreen message="Preparando tu espacio de trabajo…" />;

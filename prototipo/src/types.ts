@@ -111,6 +111,8 @@ export interface Order {
   createdAt: string;
   requirements: Requirement[];
   history: OrderHistoryEntry[];
+  /** dueDate < today (UTC) while still active; staff and operator only. */
+  delayed?: boolean;
 }
 
 export interface Insumo {
@@ -123,6 +125,8 @@ export interface Insumo {
   minGrams: number;
   requiredGrams: number;
   shortageGrams: number;
+  /** Physical stock strictly below the minimum. */
+  belowMinimum?: boolean;
   priceCentsPerKg?: number;
   priceDate?: string;
 }

@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, Check, CircleHelp, Clock3, PackageCheck, Radio, 
 import { api, ApiError } from './api';
 import { ActionFeedback, Badge, Button, Card, Field, Input, InlineNotice, LogoMark, Select, TextArea } from './components';
 import type { Client, Estimate, PublicArticle, Unit } from './types';
+import { COMPANY_MAX, CUIT_MAX, EMAIL_MAX, hasMarkup, maxQuantityFor, NO_MARKUP_HINT, NOTES_API_MAX, NOTES_USER_MAX, PHONE_MAX, PHONE_MIN } from './limits';
 import { formatCents, unitLabel } from './utils';
 
 const specialOption = '__special__';
@@ -66,7 +67,8 @@ export function PublicQuote({ client, onBack, backLabel = 'Volver a mi portal', 
   const needsManualQuote = special || (Boolean(selection) && configurationValid && !matchedArticle);
   const articleId = needsManualQuote ? null : matchedArticle?.id ?? null;
   const amount = Number(quantity);
-  const quantityValid = Number.isSafeInteger(amount) && amount > 0;
+  const maxQuantity = maxQuantityFor(unit);
+  const quantityValid = Number.isSafeInteger(amount) && amount > 0 && amount <= maxQuantity;
 
   useEffect(() => {
     let current = true;
@@ -123,6 +125,19 @@ export function PublicQuote({ client, onBack, backLabel = 'Volver a mi portal', 
       setSuccess('');
       return;
     }
+    const requestNotes = needsManualQuote
+      ? [`Configuración solicitada: material/hilado ${configuration.material}; ${threadCount} hilos; color ${configuration.color}; tramado ${configuration.weave}; largo ${lengthCm} cm.`, notes.trim() ? `Notas adicionales: ${notes.trim()}` : ''].filter(Boolean).join('\n')
+      : notes.trim();
+    const phoneDigits = phone.replace(/\D/g, '').length;
+    const problem = notes.trim().length > NOTES_USER_MAX || requestNotes.length > NOTES_API_MAX ? `Las notas admiten hasta ${NOTES_USER_MAX} caracteres.`
+      : [company, cuit, email, phone, notes].some(hasMarkup) ? `Revisa los datos: ${NO_MARKUP_HINT}`
+      : phoneDigits < PHONE_MIN || phone.trim().length > PHONE_MAX ? `El teléfono debe tener al menos ${PHONE_MIN} dígitos y hasta ${PHONE_MAX} caracteres.`
+      : '';
+    if (problem) {
+      setError(problem);
+      setSuccess('');
+      return;
+    }
     setBusy(true);
     setError('');
     setSuccess('');
@@ -132,9 +147,7 @@ export function PublicQuote({ client, onBack, backLabel = 'Volver a mi portal', 
         quantity: amount,
         unit,
         special: needsManualQuote,
-        notes: needsManualQuote
-          ? [`Configuración solicitada: material/hilado ${configuration.material}; ${threadCount} hilos; color ${configuration.color}; tramado ${configuration.weave}; largo ${lengthCm} cm.`, notes.trim() ? `Notas adicionales: ${notes.trim()}` : ''].filter(Boolean).join('\n')
-          : notes.trim(),
+        notes: requestNotes,
         company: company.trim(),
         cuit: cuit.trim(),
         email: email.trim(),
@@ -211,14 +224,15 @@ export function PublicQuote({ client, onBack, backLabel = 'Volver a mi portal', 
               <small>{!configurationValid ? 'Completa los atributos para comprobar una coincidencia exacta.' : special ? 'No se usará precio de catálogo; esta configuración se enviará como solicitud especial.' : matchedArticle ? 'La vista previa usa únicamente este artículo del catálogo.' : 'Sin coincidencia exacta no se calcula un precio parecido; la solicitud se enviará como especial.'}</small>
             </div>
             <div className="field-row">
-              <Field label="Cantidad" htmlFor="quantity"><Input id="quantity" type="number" min="1" step="1" inputMode="numeric" value={quantity} onChange={(event) => setQuantity(event.target.value)} required /></Field>
+              <Field label="Cantidad" htmlFor="quantity" hint={`Máximo ${maxQuantity.toLocaleString('es-AR')} ${unitLabel(unit, maxQuantity)} (1.000.000 unidades).`}><Input id="quantity" type="number" min="1" max={maxQuantity} step="1" inputMode="numeric" value={quantity} onChange={(event) => setQuantity(event.target.value)} required /></Field>
               <Field label="Unidad de venta" htmlFor="unit">
                 <Select id="unit" value={unit} onChange={(event) => setUnit(event.target.value as Unit)}>
                   <option value="unidad">Unidad</option><option value="gruesa">Gruesa</option><option value="100pares">100 pares</option>
                 </Select>
               </Field>
             </div>
-            {needsManualQuote && <Field label="Notas del desarrollo" htmlFor="notes"><TextArea id="notes" rows={2} value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Uso, aplicación u otras especificaciones adicionales" /></Field>}
+            {!quantityValid && <InlineNotice variant="warning" role="alert">La cantidad debe ser un entero entre 1 y {maxQuantity.toLocaleString('es-AR')} {unitLabel(unit, maxQuantity)}.</InlineNotice>}
+            {needsManualQuote && <Field label="Notas del desarrollo" htmlFor="notes" hint={`${notes.length}/${NOTES_USER_MAX} caracteres. ${NO_MARKUP_HINT}`}><TextArea id="notes" rows={2} maxLength={NOTES_USER_MAX} value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Uso, aplicación u otras especificaciones adicionales" /></Field>}
 
             <div className="estimate-box" aria-live="polite">
               <div className="estimate-heading"><span>Vista previa</span>{estimateLoading && <span className="preview-loading"><span className="spin-dot" /> Calculando</span>}</div>
@@ -228,14 +242,14 @@ export function PublicQuote({ client, onBack, backLabel = 'Volver a mi portal', 
 
             <div className="form-section-title"><span>03</span><h3>Tus datos de contacto</h3></div>
             <div className="field-row">
-              <Field label="Empresa / nombre" htmlFor="company"><Input id="company" autoComplete="organization" value={company} onChange={(event) => setCompany(event.target.value)} required /></Field>
-              <Field label="CUIT" htmlFor="cuit"><Input id="cuit" autoComplete="off" inputMode="numeric" value={cuit} onChange={(event) => setCuit(event.target.value)} placeholder="30-12345678-9" required /></Field>
+              <Field label="Empresa / nombre" htmlFor="company"><Input id="company" autoComplete="organization" maxLength={COMPANY_MAX} value={company} onChange={(event) => setCompany(event.target.value)} required /></Field>
+              <Field label="CUIT" htmlFor="cuit"><Input id="cuit" autoComplete="off" inputMode="numeric" maxLength={CUIT_MAX} value={cuit} onChange={(event) => setCuit(event.target.value)} placeholder="30-12345678-9" required /></Field>
             </div>
             <div className="field-row">
-              <Field label="Correo electrónico" htmlFor="email"><Input id="email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></Field>
-              <Field label="Teléfono" htmlFor="phone"><Input id="phone" type="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="Código de área y número" required /></Field>
+              <Field label="Correo electrónico" htmlFor="email"><Input id="email" type="email" autoComplete="email" maxLength={EMAIL_MAX} value={email} onChange={(event) => setEmail(event.target.value)} required /></Field>
+              <Field label="Teléfono" htmlFor="phone"><Input id="phone" type="tel" autoComplete="tel" minLength={PHONE_MIN} maxLength={PHONE_MAX} value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="Código de área y número" required /></Field>
             </div>
-            {!needsManualQuote && <Field label="Detalle adicional (opcional)" htmlFor="notes"><TextArea id="notes" rows={2} value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Medidas, uso previsto, tiempos u otra referencia" /></Field>}
+            {!needsManualQuote && <Field label="Detalle adicional (opcional)" htmlFor="notes" hint={`${notes.length}/${NOTES_USER_MAX} caracteres. ${NO_MARKUP_HINT}`}><TextArea id="notes" rows={2} maxLength={NOTES_USER_MAX} value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Medidas, uso previsto, tiempos u otra referencia" /></Field>}
             <label className="consent-check"><input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} required /><span>Autorizo el uso de estos datos para dar seguimiento a esta solicitud.</span></label>
             <ActionFeedback error={error} success={success} />
             <Button type="submit" className="submit-request" disabled={busy || !consent || catalogLoading || !selection || !configurationValid || !quantityValid}>{busy ? 'Registrando solicitud…' : 'Enviar solicitud'}<ArrowRight size={17} /></Button>

@@ -1,4 +1,5 @@
 import type { Article, Insumo, Order, OrderStatus, Quote, Unit } from './types';
+import { todayUtc } from './limits';
 
 const currency = new Intl.NumberFormat('es-AR', {
   style: 'currency',
@@ -57,6 +58,34 @@ export function insumoName(insumos: Insumo[], id: string): string {
 
 export function clientName(clients: Array<{ id: string; name: string }>, id?: string): string {
   return clients.find((client) => client.id === id)?.name ?? 'Cliente por asociar';
+}
+
+/** Single definition of an active order: still in the physical production cycle. */
+export const ACTIVE_ORDER_STATUSES: readonly OrderStatus[] = ['Pendiente', 'En producción', 'Listo'];
+
+export function isActiveOrder(order: Pick<Order, 'status'>): boolean {
+  return ACTIVE_ORDER_STATUSES.includes(order.status);
+}
+
+export function isDelayed(order: Pick<Order, 'status' | 'dueDate' | 'delayed'>): boolean {
+  if (typeof order.delayed === 'boolean') return order.delayed;
+  return isActiveOrder(order) && Boolean(order.dueDate) && order.dueDate.slice(0, 10) < todayUtc();
+}
+
+export function isBelowMinimum(insumo: Pick<Insumo, 'stockGrams' | 'minGrams' | 'belowMinimum'>): boolean {
+  if (typeof insumo.belowMinimum === 'boolean') return insumo.belowMinimum;
+  return insumo.stockGrams < insumo.minGrams;
+}
+
+const queueStatusRank: Partial<Record<OrderStatus, number>> = { 'En producción': 0, Pendiente: 1, Listo: 2 };
+
+/** Queue order: running first, then priority (1 = most urgent), due date, creation and number. */
+export function compareQueue(a: Order, b: Order): number {
+  return (queueStatusRank[a.status] ?? 3) - (queueStatusRank[b.status] ?? 3)
+    || a.priority - b.priority
+    || a.dueDate.localeCompare(b.dueDate)
+    || a.createdAt.localeCompare(b.createdAt)
+    || a.number.localeCompare(b.number, 'es');
 }
 
 export function orderReadiness(order: Order): boolean {

@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Sparkles } from 'lucide-react';
 import { api, ApiError } from './api';
 import type { User } from './types';
-import { Button, Field, Input, LogoMark } from './components';
+import { Button, Field, InlineNotice, Input, LogoMark } from './components';
 
 const demoUsers = [
   ['rodrigo', 'Comercial · responsable'],
@@ -13,7 +13,7 @@ const demoUsers = [
   ['cliente2', 'Cliente Beta'],
 ] as const;
 
-export function Login({ onLogin, onOpenCotizador }: { onLogin: (user: User) => void; onOpenCotizador: () => void }) {
+export function Login({ onLogin, onOpenCotizador, notice }: { onLogin: (user: User) => void; onOpenCotizador: () => void; notice?: string }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -53,17 +53,18 @@ export function Login({ onLogin, onOpenCotizador }: { onLogin: (user: User) => v
           <div className="auth-panel-top"><div className="auth-symbol"><LockKeyhole size={19} /></div><span className="auth-kicker">Acceso seguro</span></div>
           <h2 id="login-heading">Bienvenido de vuelta</h2>
           <p className="auth-panel-copy">Ingresa con tu cuenta para continuar.</p>
+          {notice && !error && <InlineNotice variant="warning" role="alert">{notice}</InlineNotice>}
           <form className="form-stack" onSubmit={submit}>
             <Field label="Usuario" htmlFor="username">
-              <Input id="username" name="username" autoComplete="username" autoCapitalize="none" value={username} onChange={(event) => setUsername(event.target.value)} required placeholder="Tu nombre de usuario" />
+              <Input id="username" name="username" autoComplete="username" autoCapitalize="none" value={username} onChange={(event) => setUsername(event.target.value)} maxLength={80} aria-invalid={Boolean(error)} aria-describedby={error ? 'login-error' : undefined} required placeholder="Tu nombre de usuario" />
             </Field>
             <Field label="Contraseña" htmlFor="password">
               <div className="password-field">
-                <Input id="password" name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required placeholder="Ingresa tu contraseña" />
+                <Input id="password" name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} maxLength={1024} aria-invalid={Boolean(error)} aria-describedby={error ? 'login-error' : undefined} required placeholder="Ingresa tu contraseña" />
                 <button className="password-toggle" type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}>{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button>
               </div>
             </Field>
-            {error && <p className="form-error" role="alert">{error}</p>}
+            {error && <p className="form-error" id="login-error" role="alert">{error}</p>}
             <Button type="submit" disabled={busy} className="auth-submit">{busy ? 'Verificando…' : 'Ingresar'}<ArrowRight size={16} /></Button>
           </form>
           <div className="demo-access">
