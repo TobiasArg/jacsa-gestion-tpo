@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { watch, existsSync, mkdtempSync, readdirSync, rmSync, statSync } from 'node:fs';
+import { watch, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { createServer as createHttpServer } from 'node:http';
 import { createServer as createNetServer } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -57,13 +57,15 @@ function closeServer(server) {
   });
 }
 
-function launchHarness(port, temporaryParent) {
+function launchHarness(port, temporaryParent, extraEnv = {}) {
   const child = spawn(process.execPath, [launcherPath], {
     cwd: projectDirectory,
     env: {
       ...process.env,
       JACSA_E2E_PORT: String(port),
       TMPDIR: temporaryParent,
+      JACSA_E2E_DB_MANIFEST: '',
+      ...extraEnv,
     },
     detached: process.platform !== 'win32',
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -186,6 +188,7 @@ test('E2E port defaults to 3181, accepts configured values, and rejects invalid 
 
 test('launcher serves on its configured port and removes its private DB after SIGTERM', { timeout: 30_000 }, async () => {
   const temporaryParent = makePrivateTempParent();
+  const manifest = resolve(projectDirectory, 'test-results/qa-preparacion', `harness-${process.pid}.json`);
   let launcher;
   try {
     const emptyPortProbe = createNetServer();
@@ -193,7 +196,7 @@ test('launcher serves on its configured port and removes its private DB after SI
     await closeServer(emptyPortProbe);
     assert.ok(port > 1024, `Expected an ephemeral port, got ${port}`);
 
-    launcher = launchHarness(port, temporaryParent);
+    launcher = launchHarness(port, temporaryParent, { JACSA_E2E_DB_MANIFEST: manifest });
     const health = await waitForHealth(launcher, port);
     assert.deepEqual(await health.json(), { ok: true });
 
@@ -204,11 +207,13 @@ test('launcher serves on its configured port and removes its private DB after SI
     assert.equal(dirname(databaseDirectory), resolve(temporaryParent));
     assert.equal(statSync(databaseDirectory).isDirectory(), true);
     assert.equal(existsSync(join(databaseDirectory, 'demo.sqlite')), true);
+    assert.deepEqual(JSON.parse(readFileSync(manifest, 'utf8')), { dbPath: join(databaseDirectory, 'demo.sqlite'), directory: databaseDirectory, port, demo: true });
 
     assert.equal(launcher.child.kill('SIGTERM'), true, 'SIGTERM should be sent to the owned launcher process');
     const result = await waitForClose(launcher, 8_000);
     assert.deepEqual(result, { code: 0, signal: null }, `${launcher.stdout}\n${launcher.stderr}`);
     assert.equal(existsSync(databaseDirectory), false, 'The launcher should remove its private DB directory');
+    assert.equal(existsSync(manifest), false, 'The launcher should remove its manifest');
     assert.deepEqual(readdirSync(temporaryParent), [], 'The private TMPDIR should be empty after shutdown');
     await assertPortAvailable(port);
   } finally {
