@@ -1,10 +1,16 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import test from 'node:test';
 import { createApp } from '../server/app.mjs';
+
+function temporaryDirectory(prefix) {
+  const parent = tmpdir();
+  if (!statSync(parent).isDirectory()) throw new Error(`El directorio temporal no es un directorio: ${parent}`);
+  return mkdtempSync(join(parent, prefix));
+}
 
 function cuitFrom(prefix = '3070999999') {
   const weights = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
@@ -16,26 +22,35 @@ function cuitFrom(prefix = '3070999999') {
 
 async function harness(t, { dbPath, demoMode = true } = {}) {
   const ownsDirectory = !dbPath;
-  const directory = ownsDirectory ? mkdtempSync(join(tmpdir(), 'jacsa-backend-')) : null;
+  const directory = ownsDirectory ? temporaryDirectory('jacsa-backend-') : null;
   const resolvedDbPath = dbPath ?? join(directory, 'test.sqlite');
-  const app = createApp({ dbPath: resolvedDbPath, demoMode });
-  const server = await new Promise((resolve, reject) => {
+  let app;
+  let server;
+  let closed = false;
+  const close = async () => {
+    if (closed) return;
+    closed = true;
+    try {
+      if (server?.listening) await new Promise((resolve) => server.close(resolve));
+    } finally {
+      app?.locals.close();
+    }
+  };
+  t.after(async () => {
+    try {
+      await close();
+    } finally {
+      if (ownsDirectory) rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
+  app = createApp({ dbPath: resolvedDbPath, demoMode });
+  server = await new Promise((resolve, reject) => {
     const listener = app.listen(0, '127.0.0.1', () => resolve(listener));
     listener.once('error', reject);
   });
   const address = server.address();
   const base = `http://127.0.0.1:${address.port}`;
-  let closed = false;
-  const close = async () => {
-    if (closed) return;
-    closed = true;
-    await new Promise((resolve) => server.close(resolve));
-    app.locals.close();
-  };
-  t.after(async () => {
-    await close();
-    if (ownsDirectory) rmSync(directory, { recursive: true, force: true });
-  });
 
   async function call(path, { method = 'GET', body, cookie, header = true, origin } = {}) {
     const headers = {};
@@ -750,7 +765,7 @@ test('reset solo opera con modo demo y confirmación, preserva sesión y restabl
 });
 
 test('SQLite y sesión sobreviven al cierre y reapertura de la aplicación', async (t) => {
-  const directory = mkdtempSync(join(tmpdir(), 'jacsa-persistence-'));
+  const directory = temporaryDirectory('jacsa-persistence-');
   const dbPath = join(directory, 'persistent.sqlite');
   t.after(() => rmSync(directory, { recursive: true, force: true }));
   const first = await harness(t, { dbPath });

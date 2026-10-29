@@ -1,4 +1,10 @@
 import { defineConfig } from '@playwright/test';
+import { fileURLToPath } from 'node:url';
+import { getE2EBaseURL, getE2EPort } from './tests/e2e/harness-config.mjs';
+
+const projectDirectory = fileURLToPath(new URL('.', import.meta.url));
+const port = getE2EPort();
+const baseURL = getE2EBaseURL(port);
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -11,17 +17,17 @@ export default defineConfig({
   ],
   outputDir: 'test-results/playwright-report/artifacts',
   use: {
-    baseURL: 'http://127.0.0.1:3001',
+    baseURL,
     browserName: 'chromium',
     viewport: { width: 1470, height: 1000 },
     screenshot: 'only-on-failure',
   },
   webServer: {
     command: 'node tests/e2e/start-server.mjs',
-    cwd: process.cwd(),
-    url: 'http://127.0.0.1:3001/api/health',
+    cwd: projectDirectory,
+    url: `${baseURL}/api/health`,
     reuseExistingServer: false,
     timeout: 20_000,
-    gracefulShutdown: { signal: 'SIGTERM', timeout: 5_000 },
+    gracefulShutdown: { signal: 'SIGTERM', timeout: 8_000 },
   },
 });
