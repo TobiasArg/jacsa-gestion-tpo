@@ -1,0 +1,315 @@
+{
+  "commit": "9a02145",
+  "playwright": "1.64.1",
+  "chromium": "156.0.8078.4",
+  "viewport": [
+    1920,
+    1080
+  ],
+  "fps": 30,
+  "puntero": true,
+  "apiCalls": 0,
+  "externalCalls": 0,
+  "storageBeforeLogin": [],
+  "storageAfter": [
+    "jacsa-demo:v1"
+  ],
+  "uniqueShots": 273,
+  "saldoC4": {
+    "hiladoNegro": "24 g",
+    "almaNegra": "12 g"
+  },
+  "clips": [
+    {
+      "id": 1,
+      "file": "jacsa-60s-1-cliente-solicitud.mp4",
+      "frames": 1800,
+      "segments": [
+        {
+          "tab": "cliente",
+          "route": "portal",
+          "inFrame": 90,
+          "outFrame": 1470
+        }
+      ],
+      "beats": [
+        {
+          "id": "nueva-solicitud",
+          "planS": 7,
+          "realS": 7
+        },
+        {
+          "id": "articulo",
+          "planS": 9,
+          "realS": 9
+        },
+        {
+          "id": "cantidad",
+          "planS": 14,
+          "realS": 14
+        },
+        {
+          "id": "vista-previa",
+          "planS": 19,
+          "realS": 19
+        },
+        {
+          "id": "contacto",
+          "planS": 29,
+          "realS": 29
+        },
+        {
+          "id": "registrar-solicitud",
+          "planS": 38,
+          "realS": 38
+        },
+        {
+          "id": "volver-portal",
+          "planS": 44,
+          "realS": 44
+        },
+        {
+          "id": "solicitudes-enviadas",
+          "planS": 48,
+          "realS": 48
+        },
+        {
+          "id": "quieto-salida",
+          "planS": 58,
+          "realS": 58
+        }
+      ],
+      "checkpoints": {
+        "entrada": "C0",
+        "salida": "C1",
+        "ok": true
+      }
+    },
+    {
+      "id": 2,
+      "file": "jacsa-60s-2-comercial-pedido.mp4",
+      "frames": 1800,
+      "segments": [
+        {
+          "tab": "rodrigo",
+          "route": "dashboard",
+          "inFrame": 90,
+          "outFrame": 1320
+        }
+      ],
+      "beats": [
+        {
+          "id": "preparar-cotizacion",
+          "planS": 8,
+          "realS": 8
+        },
+        {
+          "id": "recargo-vigencia",
+          "planS": 10,
+          "realS": 10
+        },
+        {
+          "id": "crear-cotizacion",
+          "planS": 16,
+          "realS": 16
+        },
+        {
+          "id": "enviar-propuesta",
+          "planS": 24,
+          "realS": 24
+        },
+        {
+          "id": "registrar-aceptacion",
+          "planS": 28,
+          "realS": 28
+        },
+        {
+          "id": "convertir-pedido",
+          "planS": 32,
+          "realS": 32
+        },
+        {
+          "id": "nav-pedidos",
+          "planS": 37,
+          "realS": 37
+        },
+        {
+          "id": "ver-orden",
+          "planS": 40,
+          "realS": 40
+        },
+        {
+          "id": "requerimientos",
+          "planS": 43,
+          "realS": 43
+        },
+        {
+          "id": "quieto-salida",
+          "planS": 58,
+          "realS": 58
+        }
+      ],
+      "checkpoints": {
+        "entrada": "C1",
+        "salida": "C2",
+        "ok": true
+      }
+    },
+    {
+      "id": 3,
+      "file": "jacsa-60s-3-abastecimiento-plan.mp4",
+      "frames": 1800,
+      "segments": [
+        {
+          "tab": "lorena",
+          "route": "stock",
+          "inFrame": 90,
+          "outFrame": 960
+        },
+        {
+          "tab": "rodrigo",
+          "route": "pedidos",
+          "inFrame": 1200,
+          "outFrame": 1546
+        }
+      ],
+      "beats": [
+        {
+          "id": "ingreso-INS-NEGRO",
+          "planS": 8,
+          "realS": 8
+        },
+        {
+          "id": "ingreso-INS-ALMA",
+          "planS": 20,
+          "realS": 20
+        },
+        {
+          "id": "movimientos",
+          "planS": 31,
+          "realS": 31
+        },
+        {
+          "id": "corte-rodrigo",
+          "planS": 39,
+          "realS": 39
+        },
+        {
+          "id": "ver-orden",
+          "planS": 43,
+          "realS": 43
+        },
+        {
+          "id": "maquina-prioridad",
+          "planS": 45,
+          "realS": 45
+        },
+        {
+          "id": "guardar-plan",
+          "planS": 51,
+          "realS": 51
+        },
+        {
+          "id": "quieto-salida",
+          "planS": 58,
+          "realS": 58
+        }
+      ],
+      "checkpoints": {
+        "entrada": "C2",
+        "salida": "C3",
+        "ok": true
+      }
+    },
+    {
+      "id": 4,
+      "file": "jacsa-60s-4-operario-produccion.mp4",
+      "frames": 1800,
+      "segments": [
+        {
+          "tab": "operario",
+          "route": "cola",
+          "inFrame": 90,
+          "outFrame": 1470
+        }
+      ],
+      "beats": [
+        {
+          "id": "ver-orden",
+          "planS": 12,
+          "realS": 12
+        },
+        {
+          "id": "iniciar-produccion",
+          "planS": 15,
+          "realS": 15
+        },
+        {
+          "id": "unidades",
+          "planS": 21,
+          "realS": 21
+        },
+        {
+          "id": "control-calidad",
+          "planS": 28,
+          "realS": 28
+        },
+        {
+          "id": "guardar-avance",
+          "planS": 32,
+          "realS": 32
+        },
+        {
+          "id": "consumo",
+          "planS": 48,
+          "realS": 48
+        },
+        {
+          "id": "quieto-salida",
+          "planS": 58,
+          "realS": 58
+        }
+      ],
+      "checkpoints": {
+        "entrada": "C3",
+        "salida": "C4",
+        "ok": true
+      }
+    },
+    {
+      "id": 5,
+      "file": "jacsa-60s-5-cliente-seguimiento.mp4",
+      "frames": 1800,
+      "segments": [
+        {
+          "tab": "cliente",
+          "route": "portal",
+          "inFrame": 90,
+          "outFrame": 766
+        }
+      ],
+      "beats": [
+        {
+          "id": "mis-pedidos",
+          "planS": 10,
+          "realS": 10
+        },
+        {
+          "id": "mis-avisos",
+          "planS": 24,
+          "realS": 24
+        },
+        {
+          "id": "cierre",
+          "planS": 54,
+          "realS": 54
+        }
+      ],
+      "checkpoints": {
+        "entrada": "C4",
+        "salida": "C4",
+        "ok": true
+      }
+    }
+  ]
+}

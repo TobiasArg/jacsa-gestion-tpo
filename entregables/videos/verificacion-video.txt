@@ -1,0 +1,20 @@
+JACSA Gestión · verificación de video mudo (generado por prototipo/scripts/video/record-demo-video.mjs)
+commit=9a02145  playwright=1.64.1  chromium=156.0.8078.4  viewport=1920x1080  puntero=true
+encoder=ffmpeg version 6.0 Copyright (c) 2000-2023 the FFmpeg developers  sha256=a90e3db6a3fd35f6074b013f948b1aa45b31c6375489d39e572bea3f18336584
+aislamiento: contexto nuevo sin storageState; localStorage jacsa-demo:* antes del login=[]; llamadas /api=0; requests externas=0
+checkpoints C0→C4 OK; saldo C4 verificado en Stock: hilado negro 24 g, alma negra 12 g
+beats: 37, desfase máximo 0.000 s (tolerancia 0.5 s); cuadros únicos=273
+jacsa-60s-1-cliente-solicitud.mp4  5004712 B  sha256=2565e3d777f3a259d10dacb829df6ae64ef4658992ab62dd88cd94aa680f33ed
+  codec=avc1 H.264 High@L4.1  1920x1080 SAR 1:1  30 fps CFR (delta 512/15360)  frames=1800 decodificados=1800 (esperado 1800)  duracion pista=60.000000 s  peli=60.000000 s  pistas=1 [vide]  audio=ninguno  keyframes=30 cada 60  faststart=true  OK
+jacsa-60s-2-comercial-pedido.mp4  4249378 B  sha256=00976a9f04b365da1903394607ef13df0b0a4df639df7ef8ac2e402fe87eb9f7
+  codec=avc1 H.264 High@L4.1  1920x1080 SAR 1:1  30 fps CFR (delta 512/15360)  frames=1800 decodificados=1800 (esperado 1800)  duracion pista=60.000000 s  peli=60.000000 s  pistas=1 [vide]  audio=ninguno  keyframes=30 cada 60  faststart=true  OK
+jacsa-60s-3-abastecimiento-plan.mp4  3978896 B  sha256=4bc2887caa5b93ad619a7adee502755c401af3b808e9bd927aa46674e16ca602
+  codec=avc1 H.264 High@L4.1  1920x1080 SAR 1:1  30 fps CFR (delta 512/15360)  frames=1800 decodificados=1800 (esperado 1800)  duracion pista=60.000000 s  peli=60.000000 s  pistas=1 [vide]  audio=ninguno  keyframes=30 cada 60  faststart=true  OK
+jacsa-60s-4-operario-produccion.mp4  4030282 B  sha256=70040e18373e9b7fb65548d60eebf0a1ffbbd930980ddd8845727addbf730c12
+  codec=avc1 H.264 High@L4.1  1920x1080 SAR 1:1  30 fps CFR (delta 512/15360)  frames=1800 decodificados=1800 (esperado 1800)  duracion pista=60.000000 s  peli=60.000000 s  pistas=1 [vide]  audio=ninguno  keyframes=30 cada 60  faststart=true  OK
+jacsa-60s-5-cliente-seguimiento.mp4  4215386 B  sha256=9b3aad674c57781747fd67213a73cd04c2884c6c0c74173eedc6978f6f73bd96
+  codec=avc1 H.264 High@L4.1  1920x1080 SAR 1:1  30 fps CFR (delta 512/15360)  frames=1800 decodificados=1800 (esperado 1800)  duracion pista=60.000000 s  peli=60.000000 s  pistas=1 [vide]  audio=ninguno  keyframes=30 cada 60  faststart=true  OK
+jacsa-300s-continuo.mp4  21481674 B  sha256=f7b421d78c30c5c4002fa346cbdb9e3155901d52a0f5e9e4e5b34f4fbac9f293
+  codec=avc1 H.264 High@L4.1  1920x1080 SAR 1:1  30 fps CFR (delta 512/15360)  frames=9000 decodificados=9000 (esperado 9000)  duracion pista=300.000000 s  peli=300.000000 s  pistas=1 [vide]  audio=ninguno  keyframes=150 cada 60  faststart=true  OK
+continuo == clips 1..5 frame a frame (framemd5): OK
+tamaño conjunto: 42960328 B (40.97 MiB; límite 150 MB)
