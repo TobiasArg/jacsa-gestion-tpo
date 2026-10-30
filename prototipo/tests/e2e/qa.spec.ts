@@ -13,8 +13,40 @@ async function post(api: APIRequestContext, path: string, data: object = {}, sta
   expect(response.status(), `${path}: ${await response.text()}`).toBe(status);
   return response.json();
 }
+type RequestFactory = {
+  request: {
+    newContext(options: { baseURL: string }): Promise<APIRequestContext>;
+  };
+};
+async function anonymousApi(playwright: RequestFactory) {
+  const baseURL = test.info().project.use.baseURL;
+  if (typeof baseURL !== 'string') throw new Error('La configuración Playwright debe definir baseURL.');
+  return playwright.request.newContext({ baseURL });
+}
 async function auth(api: APIRequestContext, username = 'rodrigo') {
   await post(api, '/api/login', { username, password });
+}
+async function expectRoleForbidden(api: APIRequestContext, username: string, path: string, data: object) {
+  await auth(api, username);
+  const response = await api.post(path, { headers, data });
+  const payload = await response.json();
+  expect(response.status(), `${username} ${path}: ${JSON.stringify(payload)}`).toBe(403);
+  expect(payload).toMatchObject({ code: 'FORBIDDEN' });
+}
+async function expectForbiddenRoles(api: APIRequestContext, path: string, data: object, usernames: string[]) {
+  for (const username of usernames) await expectRoleForbidden(api, username, path, data);
+}
+async function expectAnonymousPostDenied(api: APIRequestContext, path: string, data: object) {
+  const response = await api.post(path, { headers, data });
+  const payload = await response.json();
+  expect(response.status(), `${path}: ${JSON.stringify(payload)}`).toBe(401);
+  expect(payload).toMatchObject({ code: 'UNAUTHENTICATED' });
+}
+async function expectAnonymousGetDenied(api: APIRequestContext, path: string) {
+  const response = await api.get(path);
+  const payload = await response.json();
+  expect(response.status(), `${path}: ${JSON.stringify(payload)}`).toBe(401);
+  expect(payload).toMatchObject({ code: 'UNAUTHENTICATED' });
 }
 async function snapshot(api: APIRequestContext) {
   const response = await api.get('/api/bootstrap');
@@ -69,6 +101,383 @@ test.beforeEach(async ({ request }) => {
   expect(initial.orders).toHaveLength(2);
   expect(initial.requests).toHaveLength(0);
   expect(initial.notifications).toHaveLength(0);
+});
+
+// APIRequestContext-only permissions checks: each endpoint uses the real E2E server and demo DB.
+test('E01: health es público y las rutas API desconocidas devuelven NOT_FOUND', async ({ playwright }) => {
+  const anonymous = await anonymousApi(playwright);
+  try {
+    expect(await (await anonymous.get('/api/health')).json()).toEqual({ ok: true });
+    const missing = await anonymous.get('/api/no-existe');
+    expect(missing.status()).toBe(404);
+    expect(await missing.json()).toMatchObject({ code: 'NOT_FOUND' });
+  } finally { await anonymous.dispose(); }
+});
+
+test('E02: /me es público, informa null sin sesión y la sesión autenticada', async ({ playwright, request }) => {
+  const anonymous = await anonymousApi(playwright);
+  try {
+    const publicResponse = await anonymous.get('/api/me');
+    expect(publicResponse.status()).toBe(200);
+    expect(await publicResponse.json()).toEqual({ user: null });
+  } finally { await anonymous.dispose(); }
+
+  await auth(request, 'cliente');
+  const authenticated = await request.get('/api/me');
+  expect(authenticated.status()).toBe(200);
+  expect((await authenticated.json()).user).toMatchObject({ username: 'cliente', role: 'client' });
+});
+
+test('E03: catálogo público responde sin sesión y no expone costos', async ({ playwright }) => {
+  const anonymous = await anonymousApi(playwright);
+  try {
+    const response = await anonymous.get('/api/catalog');
+    expect(response.status()).toBe(200);
+    const body = await response.json();
+    expect(body.articles.length).toBeGreaterThan(0);
+    expect(body.articles.every((article: object) => !('costCents' in article) && !('priceCentsPerKg' in article))).toBe(true);
+  } finally { await anonymous.dispose(); }
+});
+
+test('E04: login acepta las cinco cuentas habilitadas y rechaza credenciales inválidas', async ({ playwright }) => {
+  const anonymous = await anonymousApi(playwright);
+  try {
+    for (const [username, role] of [['rodrigo', 'manager'], ['lorena', 'admin'], ['operario', 'operator'], ['sergio', 'technology'], ['cliente', 'client']]) {
+      const result = await post(anonymous, '/api/login', { username, password });
+      expect(result.user).toMatchObject({ username, role });
+    }
+    const rejected = await anonymous.post('/api/login', { headers, data: { username: 'rodrigo', password: 'incorrecta' } });
+    expect(rejected.status()).toBe(401);
+    expect(await rejected.json()).toMatchObject({ code: 'INVALID_CREDENTIALS' });
+  } finally { await anonymous.dispose(); }
+});
+
+test('E05: logout es público, acepta anónimo y revoca la sesión autenticada', async ({ playwright, request }) => {
+  const anonymous = await anonymousApi(playwright);
+  try {
+    expect(await post(anonymous, '/api/logout')).toMatchObject({ ok: true });
+  } finally { await anonymous.dispose(); }
+
+  await auth(request, 'cliente');
+  expect(await post(request, '/api/logout')).toMatchObject({ ok: true });
+  expect((await (await request.get('/api/me')).json()).user).toBeNull();
+});
+
+test('E06: estimate permite público, cliente, manager y admin; bloquea operario y tecnología', async ({ playwright, request }) => {
+  const anonymous = await anonymousApi(playwright);
+  const input = { articleId: 'ART-001', quantity: 1, unit: 'unidad', special: false };
+  try {
+    expect((await post(anonymous, '/api/estimate', input)).available).toBe(true);
+  } finally { await anonymous.dispose(); }
+
+  for (const username of ['cliente', 'rodrigo', 'lorena']) {
+    await auth(request, username);
+    expect((await post(request, '/api/estimate', input)).available).toBe(true);
+  }
+  await expectForbiddenRoles(request, '/api/estimate', input, ['operario', 'sergio']);
+});
+
+test('E07: requests permite envíos anónimos y de cliente, vincula solo la sesión cliente y valida errores', async ({ playwright, request }) => {
+  const anonymous = await anonymousApi(playwright);
+  const input = { articleId: 'ART-001', quantity: 1, unit: 'unidad', special: false, company: 'Solicitud QA', cuit: '30709999997', email: 'qa@example.com', phone: '+54 11 5555 0101', consent: true, notes: '' };
+  try {
+    const publicRequest = await post(anonymous, '/api/requests', input, 201);
+    expect(publicRequest.id).toMatch(/^request-/);
+    const invalid = await anonymous.post('/api/requests', { headers, data: { ...input, consent: false } });
+    expect(invalid.status()).toBe(400);
+    expect(await invalid.json()).toMatchObject({ code: 'CONSENT_REQUIRED' });
+  } finally { await anonymous.dispose(); }
+
+  await auth(request, 'cliente');
+  const clientRequest = await post(request, '/api/requests', { ...input, email: 'cliente-qa@example.com' }, 201);
+  expect((await snapshot(request)).requests.some((item: { id: string }) => item.id === clientRequest.id)).toBe(true);
+  await auth(request, 'rodrigo');
+  expect((await snapshot(request)).requests.some((item: { id: string }) => item.id === clientRequest.id)).toBe(true);
+});
+
+test('E08: bootstrap requiere sesión y lo reciben los cinco roles', async ({ playwright, request }) => {
+  const anonymous = await anonymousApi(playwright);
+  try { await expectAnonymousGetDenied(anonymous, '/api/bootstrap'); }
+  finally { await anonymous.dispose(); }
+
+  for (const [username, role] of [['cliente', 'client'], ['rodrigo', 'manager'], ['lorena', 'admin'], ['operario', 'operator'], ['sergio', 'technology']]) {
+    await auth(request, username);
+    const response = await request.get('/api/bootstrap');
+    expect(response.status()).toBe(200);
+    expect((await response.json()).user.role).toBe(role);
+  }
+});
+
+test('E09: solo manager crea cotizaciones', async ({ playwright, request }) => {
+  const anonymous = await anonymousApi(playwright);
+  const input = { clientId: 'CLI-ALFA', articleId: 'ART-001', quantity: 1, unit: 'unidad', markupPercent: 25, validDays: 7 };
+  try { await expectAnonymousPostDenied(anonymous, '/api/quotes', input); }
+  finally { await anonymous.dispose(); }
+  await expectForbiddenRoles(request, '/api/quotes', input, ['cliente', 'lorena', 'operario', 'sergio']);
+  await auth(request, 'rodrigo');
+  expect((await post(request, '/api/quotes', input, 201)).id).toMatch(/^quote-/);
+});
+
+test('E10: solo manager envía cotizaciones', async ({ playwright, request }) => {
+  const q = await quote(request);
+  const path = `/api/quotes/${q.id}/send`;
+  const anonymous = await anonymousApi(playwright);
+  try { await expectAnonymousPostDenied(anonymous, path, {}); }
+  finally { await anonymous.dispose(); }
+  await expectForbiddenRoles(request, path, {}, ['cliente', 'lorena', 'operario', 'sergio']);
+  await auth(request, 'rodrigo');
+  expect(await post(request, path)).toMatchObject({ ok: true, id: q.id });
+});
+
+test('E11: solo manager acepta cotizaciones enviadas', async ({ playwright, request }) => {
+  const q = await quote(request);
+  await auth(request, 'rodrigo');
+  await post(request, `/api/quotes/${q.id}/send`);
+  const path = `/api/quotes/${q.id}/accept`;
+  const anonymous = await anonymousApi(playwright);
+  try { await expectAnonymousPostDenied(anonymous, path, {}); }
+  finally { await anonymous.dispose(); }
+  await expectForbiddenRoles(request, path, {}, ['cliente', 'lorena', 'operario', 'sergio']);
+  await auth(request, 'rodrigo');
+  expect(await post(request, path)).toMatchObject({ ok: true, id: q.id });
+});
+
+test('E12: solo manager convierte cotizaciones aceptadas en pedidos', async ({ playwright, request }) => {
+  const q = await quote(request);
+  await auth(request, 'rodrigo');
+  await post(request, `/api/quotes/${q.id}/send`);
+  await post(request, `/api/quotes/${q.id}/accept`);
+  const path = `/api/quotes/${q.id}/order`;
+  const input = { dueDate: day() };
+  const anonymous = await anonymousApi(playwright);
+  try { await expectAnonymousPostDenied(anonymous, path, input); }
+  finally { await anonymous.dispose(); }
+  await expectForbiddenRoles(request, path, input, ['cliente', 'lorena', 'operario', 'sergio']);
+  await auth(request, 'rodrigo');
+  expect((await post(request, path, input)).id).toMatch(/^order-/);
+});
+
+test('E13: manager y admin reciben insumos; los demás roles no', async ({ playwright, request }) => {
+  const path = '/api/stock/receive';
+  const input = { insumoId: 'INS-NEGRO', grams: 1, memo: 'Matriz de permisos API' };
+  const anonymous = await anonymousApi(playwright);
+  try { await expectAnonymousPostDenied(anonymous, path, input); }
+  finally { await anonymous.dispose(); }
+  await expectForbiddenRoles(request, path, input, ['cliente', 'operario', 'sergio']);
+  for (const username of ['rodrigo', 'lorena']) {
+    await auth(request, username);
+    expect(await post(request, path, input)).toMatchObject({ ok: true });
+  }
+});
+
+test('E14: manager y admin actualizan precios; los demás roles no', async ({ playwright, request }) => {
+  const path = '/api/insumos/INS-NEGRO/price';
+  const input = { priceCentsPerKg: 1_500_001 };
+  const anonymous = await anonymousApi(playwright);
+  try { await expectAnonymousPostDenied(anonymous, path, input); }
+  finally { await anonymous.dispose(); }
+  await expectForbiddenRoles(request, path, input, ['cliente', 'operario', 'sergio']);
+  for (const username of ['rodrigo', 'lorena']) {
+    await auth(request, username);
+    expect(await post(request, path, input)).toMatchObject({ ok: true, id: 'INS-NEGRO' });
+  }
+});
+
+test('E15: solo manager planifica pedidos', async ({ playwright, request }) => {
+  const o = await order(request);
+  const path = `/api/orders/${o.id}/plan`;
+  const input = { machineId: 'M-04', priority: 1 };
+  const anonymous = await anonymousApi(playwright);
+  try { await expectAnonymousPostDenied(anonymous, path, input); }
+  finally { await anonymous.dispose(); }
+  await expectForbiddenRoles(request, path, input, ['cliente', 'lorena', 'operario', 'sergio']);
+  await auth(request, 'rodrigo');
+  expect(await post(request, path, input)).toMatchObject({ ok: true, id: o.id });
+});
+
+test('E16: operator y manager inician pedidos planificados con reserva', async ({ playwright, request }) => {
+  const o = await order(request);
+  await auth(request, 'rodrigo');
+  await post(request, `/api/orders/${o.id}/plan`, { machineId: 'M-04', priority: 1 });
+  const path = '/api/orders/order-demo-001/start';
+  const anonymous = await anonymousApi(playwright);
+  try { await expectAnonymousPostDenied(anonymous, path, {}); }
+  finally { await anonymous.dispose(); }
+  await expectForbiddenRoles(request, path, {}, ['cliente', 'lorena', 'sergio']);
+  await auth(request, 'operario');
+  expect(await post(request, path)).toMatchObject({ ok: true, id: 'order-demo-001' });
+  await auth(request, 'rodrigo');
+  expect(await post(request, `/api/orders/${o.id}/start`)).toMatchObject({ ok: true, id: o.id });
+});
+
+test('E17: operator y manager registran avance de producción', async ({ playwright, request }) => {
+  const o = await order(request);
+  await auth(request, 'rodrigo');
+  await post(request, `/api/orders/${o.id}/plan`, { machineId: 'M-04', priority: 1 });
+  await auth(request, 'operario');
+  await post(request, '/api/orders/order-demo-001/start');
+  await auth(request, 'rodrigo');
+  await post(request, `/api/orders/${o.id}/start`);
+
+  const path = '/api/orders/order-demo-001/progress';
+  const input = { producedUnits: 1, qualityChecked: false };
+  const anonymous = await anonymousApi(playwright);
+  try { await expectAnonymousPostDenied(anonymous, path, input); }
+  finally { await anonymous.dispose(); }
+  await expectForbiddenRoles(request, path, input, ['cliente', 'lorena', 'sergio']);
+  await auth(request, 'operario');
+  expect(await post(request, path, input)).toMatchObject({ ok: true, id: 'order-demo-001' });
+  await auth(request, 'rodrigo');
+  expect(await post(request, `/api/orders/${o.id}/progress`, input)).toMatchObject({ ok: true, id: o.id });
+});
+
+test('E18: manager y admin avanzan el estado comercial de pedidos Listos', async ({ playwright, request }) => {
+  const managed = 'order-demo-001';
+  await auth(request, 'rodrigo');
+  await post(request, `/api/orders/${managed}/start`);
+  await post(request, `/api/orders/${managed}/progress`, { producedUnits: 200, qualityChecked: true });
+  const administered = await order(request);
+  await auth(request, 'rodrigo');
+  await post(request, `/api/orders/${administered.id}/plan`, { machineId: 'M-04', priority: 1 });
+  await post(request, `/api/orders/${administered.id}/start`);
+  await post(request, `/api/orders/${administered.id}/progress`, { producedUnits: 10, qualityChecked: true });
+
+  const input = { status: 'Entregado' };
+  const path = `/api/orders/${managed}/state`;
+  const anonymous = await anonymousApi(playwright);
+  try { await expectAnonymousPostDenied(anonymous, path, input); }
+  finally { await anonymous.dispose(); }
+  await expectForbiddenRoles(request, path, input, ['cliente', 'operario', 'sergio']);
+  await auth(request, 'rodrigo');
+  expect(await post(request, path, input)).toMatchObject({ ok: true, id: managed });
+  await auth(request, 'lorena');
+  expect(await post(request, `/api/orders/${administered.id}/state`, input)).toMatchObject({ ok: true, id: administered.id });
+});
+
+test('E19: solo manager cambia fecha de entrega', async ({ playwright, request }) => {
+  const o = await order(request);
+  const path = `/api/orders/${o.id}/date`;
+  const input = { dueDate: day(12), memo: 'Matriz de permisos API' };
+  const anonymous = await anonymousApi(playwright);
+  try { await expectAnonymousPostDenied(anonymous, path, input); }
+  finally { await anonymous.dispose(); }
+  await expectForbiddenRoles(request, path, input, ['cliente', 'lorena', 'operario', 'sergio']);
+  await auth(request, 'rodrigo');
+  expect(await post(request, path, input)).toMatchObject({ ok: true, id: o.id });
+});
+
+test('E20: manager y admin reintentan avisos pendientes con contacto; los demás roles no', async ({ playwright, request }) => {
+  const first = await order(request);
+  const second = await order(request);
+  fixture("UPDATE clients SET email = '' WHERE id = 'CLI-ALFA'");
+  try {
+    await auth(request, 'rodrigo');
+    await post(request, `/api/orders/${first.id}/date`, { dueDate: day(12), memo: 'Permiso retry A' });
+    await post(request, `/api/orders/${second.id}/date`, { dueDate: day(13), memo: 'Permiso retry B' });
+    const created = (await snapshot(request)).notifications;
+    const firstNotice = created.find((item: { body: string }) => item.body.includes('Permiso retry A'))!;
+    const secondNotice = created.find((item: { body: string }) => item.body.includes('Permiso retry B'))!;
+    expect(firstNotice).toMatchObject({ status: 'Pendiente de reintento', recipient: '' });
+    expect(secondNotice).toMatchObject({ status: 'Pendiente de reintento', recipient: '' });
+    fixture("UPDATE clients SET email = 'restaurado@example.com' WHERE id = 'CLI-ALFA'");
+
+    const path = `/api/notifications/${firstNotice.id}/retry`;
+    const anonymous = await anonymousApi(playwright);
+    try { await expectAnonymousPostDenied(anonymous, path, {}); }
+    finally { await anonymous.dispose(); }
+    await expectForbiddenRoles(request, path, {}, ['cliente', 'operario', 'sergio']);
+    await auth(request, 'rodrigo');
+    expect(await post(request, path)).toMatchObject({ ok: true, id: firstNotice.id });
+    await auth(request, 'lorena');
+    expect(await post(request, `/api/notifications/${secondNotice.id}/retry`)).toMatchObject({ ok: true, id: secondNotice.id });
+    const retried = (await snapshot(request)).notifications;
+    expect(retried.find((item: { id: string }) => item.id === firstNotice.id)).toMatchObject({ status: 'Registrada', recipient: 'restaurado@example.com' });
+    expect(retried.find((item: { id: string }) => item.id === secondNotice.id)).toMatchObject({ status: 'Registrada', recipient: 'restaurado@example.com' });
+  } finally {
+    fixture("UPDATE clients SET email = 'alfa@example.com' WHERE id = 'CLI-ALFA'");
+  }
+});
+
+test('E21: solo manager y technology reinician el demo', async ({ playwright, request }) => {
+  const path = '/api/demo/reset';
+  const input = { confirmation: 'REINICIAR DEMO' };
+  const anonymous = await anonymousApi(playwright);
+  try { await expectAnonymousPostDenied(anonymous, path, input); }
+  finally { await anonymous.dispose(); }
+  await expectForbiddenRoles(request, path, input, ['cliente', 'lorena', 'operario']);
+  await auth(request, 'rodrigo');
+  expect(await post(request, path, input)).toMatchObject({ ok: true });
+  await auth(request, 'sergio');
+  expect(await post(request, path, input)).toMatchObject({ ok: true });
+  await auth(request, 'rodrigo');
+  expect((await snapshot(request)).orders).toHaveLength(2);
+});
+
+test('E22: solo technology habilita y deshabilita usuarios', async ({ playwright, request }) => {
+  const path = '/api/users/usr-operario/enabled';
+  const input = { enabled: true };
+  const anonymous = await anonymousApi(playwright);
+  try { await expectAnonymousPostDenied(anonymous, path, input); }
+  finally { await anonymous.dispose(); }
+  await expectForbiddenRoles(request, path, input, ['cliente', 'rodrigo', 'lorena', 'operario']);
+  await auth(request, 'sergio');
+  expect(await post(request, path, input)).toMatchObject({ ok: true, id: 'usr-operario' });
+});
+
+test('F23: polling entre contextos refleja una mutación real del API sin recargar', async ({ page, request }) => {
+  await open(page, 'lorena', 'stock');
+  let pageLoads = 0;
+  page.on('load', () => { pageLoads += 1; });
+
+  const initialSnapshot = await snapshot(request);
+  const initialStock = initialSnapshot.insumos.find((item: { id: string }) => item.id === 'INS-NEGRO').stockGrams;
+  const receivedGrams = 37;
+  await auth(request, 'lorena');
+  expect(await post(request, '/api/stock/receive', {
+    insumoId: 'INS-NEGRO', grams: receivedGrams, memo: 'F23 mutación API entre contextos',
+  })).toMatchObject({ ok: true });
+
+  const updatedSnapshot = await snapshot(request);
+  const updatedStock = updatedSnapshot.insumos.find((item: { id: string }) => item.id === 'INS-NEGRO').stockGrams;
+  expect(updatedStock).toBe(initialStock + receivedGrams);
+
+  const blackStockRow = page.locator('.stock-table tbody tr').filter({ hasText: 'Hilado negro' });
+  const displayedAmount = blackStockRow.locator('td').nth(1);
+  const formattedStock = `${new Intl.NumberFormat('es-AR').format(updatedStock)} g`;
+  await expect.poll(
+    () => displayedAmount.innerText(),
+    { timeout: 12_000, message: 'El polling debe reflejar el ingreso real del otro contexto sin recargar la página.' },
+  ).toContain(formattedStock);
+  expect(pageLoads).toBe(0);
+});
+
+test('F23: fallo de red en bootstrap muestra aviso y se recupera al restaurar la conexión', async ({ page }) => {
+  await open(page, 'rodrigo', 'dashboard');
+
+  let bootstrapNetworkAvailable = false;
+  let failedBootstrapRequests = 0;
+  await page.route('**/api/bootstrap', async (route) => {
+    if (!bootstrapNetworkAvailable) {
+      failedBootstrapRequests += 1;
+      await route.abort('failed');
+      return;
+    }
+    await route.continue();
+  });
+
+  const warning = page.locator('.shell-feedback [role="alert"]');
+  await expect(warning).toContainText('No se pudo conectar con JACSA Gestión.', { timeout: 12_000 });
+  await expect(warning).toContainText('Los datos visibles pueden estar desactualizados.');
+  expect(failedBootstrapRequests).toBeGreaterThan(0);
+
+  bootstrapNetworkAvailable = true;
+  const recoveredBootstrap = page.waitForResponse((response) =>
+    response.url().endsWith('/api/bootstrap') && response.status() === 200,
+  );
+  await page.getByRole('button', { name: 'Reintentar', exact: true }).click();
+  await recoveredBootstrap;
+  await expect(warning).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Buen día, Rodrigo.' })).toBeVisible();
 });
 
 test('F09: actualizar precio por UI conserva la cotización histórica', async ({ page, request }) => {
@@ -323,6 +732,29 @@ test('D6: límites de cantidad por unidad y notas especiales antes de enviar', a
   await expect(notes).toHaveValue('x'.repeat(800));
 });
 
+test('configurador muestra errores reales del API en estimación y envío sin registrar solicitudes inválidas', async ({ page, request }) => {
+  await page.route('**/api/estimate', async (route) => {
+    const payload = JSON.parse(route.request().postData() ?? '{}');
+    await route.continue({ postData: JSON.stringify({ ...payload, quantity: 0 }) });
+  });
+  await page.goto('/#/cotizador');
+  await expect(page.locator('.estimate-error')).toContainText('quantity debe ser un entero entre 1 y 1000000');
+  await expect(page.locator('.estimate-values')).toHaveCount(0);
+
+  await page.route('**/api/requests', async (route) => {
+    const payload = JSON.parse(route.request().postData() ?? '{}');
+    await route.continue({ postData: JSON.stringify({ ...payload, consent: false }) });
+  });
+  await page.getByLabel('Empresa / nombre').fill('Solicitud inválida QA');
+  await page.getByLabel('CUIT').fill('30709999997');
+  await page.getByLabel('Correo electrónico').fill('qa@example.com');
+  await page.getByLabel('Teléfono').fill('+54 11 5555 0101');
+  await page.getByRole('checkbox', { name: /Autorizo el uso de estos datos/ }).check();
+  await page.getByRole('button', { name: 'Enviar solicitud' }).click();
+  await expect(page.getByRole('alert').filter({ hasText: 'Se requiere consentimiento para continuar' })).toBeVisible();
+  expect((await snapshot(request)).requests).toHaveLength(0);
+});
+
 test('D8: demora de ayer visible a staff y operario pero no expuesta al cliente', async ({ page, request }) => {
   fixture('UPDATE orders SET due_date = ? WHERE id = ?', day(-1), 'order-demo-001');
   await open(page, 'rodrigo', 'pedidos');
@@ -340,29 +772,30 @@ test('D8: demora de ayer visible a staff y operario pero no expuesta al cliente'
 test('D3/D4: sin contacto aviso pendiente y no éxito falso; reintento UI con contacto no duplica', async ({ page, request }) => {
   const o = await order(request);
   fixture("UPDATE clients SET email = '' WHERE id = 'CLI-ALFA'");
-  await post(request, `/api/orders/${o.id}/date`, { dueDate: day(12), memo: 'Aviso sin contacto QA' });
-  let s = await snapshot(request);
-  const n = s.notifications.find((x: { body: string }) => x.body.includes('Aviso sin contacto QA'));
-  expect.soft(n.status).toBe('Pendiente de reintento');
-  fixture("UPDATE notifications SET status = 'Pendiente de reintento', recipient = '' WHERE id = ?", n.id);
-  const pending = (await snapshot(request)).notifications.find((x: { id: string }) => x.id === n.id);
-  // A missing recipient must fail without changing this persisted row (D4).
-  const retry = await request.post(`/api/notifications/${n.id}/retry`, { headers, data: {} });
-  expect.soft(retry.status()).toBe(409);
-  expect.soft((await retry.json()).code).toBe('NOTIFICATION_RECIPIENT_MISSING');
-  expect.soft((await snapshot(request)).notifications.find((x: { id: string }) => x.id === n.id)).toEqual(pending);
-  // Dedicated negative fixture makes UI retry independently observable on old backends too.
-  fixture("UPDATE notifications SET status = 'Pendiente de reintento', recipient = '' WHERE id = ?", n.id);
-  await open(page, 'rodrigo', 'avisos');
-  const row = page.locator('.notification-row').filter({ hasText: n.orderId }).filter({ hasText: 'Cambio de fecha' });
-  await expect(row).toContainText('Sin contacto del cliente');
-  await expect(row.getByRole('button', { name: 'Reintentar registro' })).toHaveCount(0);
-  fixture("UPDATE clients SET email = 'restaurado@example.com' WHERE id = 'CLI-ALFA'");
-  await page.reload();
-  await row.getByRole('button', { name: 'Reintentar registro' }).click();
-  await expect(row).toContainText('Registrada');
-  await expect.soft(row).toContainText('restaurado@example.com');
-  s = await snapshot(request);
-  expect(s.notifications.filter((x: { id: string }) => x.id === n.id)).toHaveLength(1);
-  await expect(row.getByRole('button', { name: 'Reintentar registro' })).toHaveCount(0);
+  try {
+    await post(request, `/api/orders/${o.id}/date`, { dueDate: day(12), memo: 'Aviso sin contacto QA' });
+    let s = await snapshot(request);
+    const n = s.notifications.find((x: { body: string }) => x.body.includes('Aviso sin contacto QA'))!;
+    expect(n).toMatchObject({ status: 'Pendiente de reintento', recipient: '' });
+    const pending = (await snapshot(request)).notifications.find((x: { id: string }) => x.id === n.id);
+    // A missing recipient must fail without changing this persisted row (D4).
+    const retry = await request.post(`/api/notifications/${n.id}/retry`, { headers, data: {} });
+    expect(retry.status()).toBe(409);
+    expect((await retry.json()).code).toBe('NOTIFICATION_RECIPIENT_MISSING');
+    expect((await snapshot(request)).notifications.find((x: { id: string }) => x.id === n.id)).toEqual(pending);
+    await open(page, 'rodrigo', 'avisos');
+    const row = page.locator('.notification-row').filter({ hasText: n.orderId }).filter({ hasText: 'Cambio de fecha' });
+    await expect(row).toContainText('Sin contacto del cliente');
+    await expect(row.getByRole('button', { name: 'Reintentar registro' })).toHaveCount(0);
+    fixture("UPDATE clients SET email = 'restaurado@example.com' WHERE id = 'CLI-ALFA'");
+    await page.reload();
+    await row.getByRole('button', { name: 'Reintentar registro' }).click();
+    await expect(row).toContainText('Registrada');
+    await expect(row).toContainText('restaurado@example.com');
+    s = await snapshot(request);
+    expect(s.notifications.filter((x: { id: string }) => x.id === n.id)).toHaveLength(1);
+    await expect(row.getByRole('button', { name: 'Reintentar registro' })).toHaveCount(0);
+  } finally {
+    fixture("UPDATE clients SET email = 'alfa@example.com' WHERE id = 'CLI-ALFA'");
+  }
 });

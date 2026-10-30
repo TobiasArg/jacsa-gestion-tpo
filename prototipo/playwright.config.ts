@@ -1,8 +1,10 @@
 import { defineConfig } from '@playwright/test';
+import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getE2EBaseURL, getE2EPort } from './tests/e2e/harness-config.mjs';
 
 const projectDirectory = fileURLToPath(new URL('.', import.meta.url));
+process.env.JACSA_E2E_DB_MANIFEST ||= resolve(projectDirectory, 'test-results/qa-preparacion/launcher.json');
 const port = getE2EPort();
 const baseURL = getE2EBaseURL(port);
 

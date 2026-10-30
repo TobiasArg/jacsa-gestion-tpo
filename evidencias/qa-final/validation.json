@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "recordedAtUtc": "2026-10-30 00:58",
+  "provenance": "Resumen durable de resultados comunicados por coordinación; no es una transcripción literal de stdout. La evidencia detallada del rehearsal se conserva en rehearsal/rehearsal.json.",
+  "scope": {
+    "implementedFlows": "F01-F24",
+    "implementedEndpoints": "E01-E22",
+    "claim": "Validación técnica de los flujos implementados inventariados; no cubre todos los RF ni certifica producción."
+  },
+  "commands": [
+    {
+      "command": "npm ci",
+      "workingDirectory": "prototipo",
+      "status": "passed",
+      "result": {
+        "auditVulnerabilitiesReported": 0
+      }
+    },
+    {
+      "command": "npm test",
+      "workingDirectory": "prototipo",
+      "status": "passed",
+      "tests": {
+        "passed": 48,
+        "failed": 0
+      }
+    },
+    {
+      "command": "npm run build",
+      "workingDirectory": "prototipo",
+      "status": "passed",
+      "result": {
+        "typescript": "passed",
+        "viteModules": 1594
+      }
+    },
+    {
+      "command": "JACSA_E2E_PORT=3182 JACSA_EVIDENCE_DIR=../evidencias/qa-final npm run test:e2e",
+      "workingDirectory": "prototipo",
+      "status": "passed",
+      "durationReported": "aproximadamente 1,0 minuto",
+      "port": 3182,
+      "tests": {
+        "total": 50,
+        "passed": 50,
+        "failed": 0,
+        "browser": 27,
+        "apiOnly": 23
+      }
+    },
+    {
+      "command": "node --test tests/e2e/harness.test.mjs",
+      "workingDirectory": "prototipo",
+      "status": "passed",
+      "tests": {
+        "total": 3,
+        "passed": 3,
+        "failed": 0
+      },
+      "coverage": [
+        "Puerto predeterminado 3181, puerto configurado y valores inválidos",
+        "Limpieza de la base privada y manifest tras SIGTERM",
+        "Puerto ocupado: el launcher falla y limpia su base sin terminar al listener ajeno"
+      ]
+    }
+  ],
+  "environmentChecks": [
+    {
+      "resource": "TCP/3182",
+      "check": "lsof",
+      "result": "sin listener después de la corrida final"
+    }
+  ],
+  "automationIncident": {
+    "initialFullRun": {
+      "passed": 49,
+      "failed": 1,
+      "failure": "El selector estricto del botón Volver a mi portal encontró dos elementos en el rehearsal."
+    },
+    "resolution": "Selector acotado con .first(); se afinaron otros selectores.",
+    "finalFullRun": "50/50 PASS",
+    "classification": "Incidencia de selector de automatización, no bug funcional observado."
+  },
+  "rehearsal": {
+    "source": "rehearsal/rehearsal.json",
+    "status": "passed",
+    "generatedAtUtc": "2026-10-30T00:58:16.960Z",
+    "cleanupErrors": [],
+    "databaseAccess": "Historia B1-B5 por acciones UI/API normales y lecturas GET /api/bootstrap; sin SQL ni acceso directo a SQLite.",
+    "checkpoints": [
+      {
+        "block": "B1",
+        "state": "C0 -> C1",
+        "observed": "Solicitud ART-001 de 2 gruesas (288 unidades), preview 21.600/4.536/26.136 ARS; request Nueva."
+      },
+      {
+        "block": "B2",
+        "state": "C1 -> C2",
+        "observed": "Cotización aceptada; pedido Pendiente; negro 576/400/176 g y alma 288/200/88 g (requerido/reservado/faltante)."
+      },
+      {
+        "block": "B3",
+        "state": "C2 -> C3",
+        "observed": "Recepciones 200/100 g cubren faltantes; stock físico 600/300 g; plan M-04, prioridad 1."
+      },
+      {
+        "block": "B4",
+        "state": "C3 -> C4",
+        "observed": "288 unidades, Listo y QC aprobado; consumos 576/288 g; saldos 24/12 g bajo mínimos físicos 100/50 g."
+      },
+      {
+        "block": "B5",
+        "state": "C4 -> C4",
+        "observed": "Portal de Cliente Alfa muestra el pedido Listo y tres avisos Registrada; no se afirma envío externo."
+      }
+    ],
+    "captures": [
+      "rehearsal/B1-C0-entrada.png",
+      "rehearsal/B1-C1-salida.png",
+      "rehearsal/B2-C1-entrada.png",
+      "rehearsal/B2-C2-salida.png",
+      "rehearsal/B3-C2-entrada.png",
+      "rehearsal/B3-C3-salida.png",
+      "rehearsal/B4-C3-entrada.png",
+      "rehearsal/B4-C4-salida.png",
+      "rehearsal/B5-C4-entrada.png",
+      "rehearsal/B5-C4-salida.png"
+    ],
+    "editorialBudget": {
+      "clipCount": 5,
+      "secondsPerClip": 58,
+      "totalSeconds": 290,
+      "plannedVoiceWords": 413,
+      "humanRehearsalPerformed": false,
+      "videoRecorded": false
+    }
+  },
+  "additionalTechnicalObservation": {
+    "flow": "F18 - catálogo interno",
+    "provenance": "Revisión técnica puntual comunicada por coordinación; fuera del conteo E2E y no incorporada como test permanente.",
+    "setup": "createApp con SQLite :memory:, listen(0), login manager rodrigo y Chromium headless.",
+    "observed": [
+      "Catálogo muestra 3 tarjetas.",
+      "Buscar ART-001 deja 1 tarjeta; costo observado 60 y BOM de 2 g de hilado negro.",
+      "Una búsqueda sin coincidencias muestra el mensaje vacío; limpiar filtros restaura las 3 tarjetas."
+    ],
+    "pageErrors": 0,
+    "cleanup": "completada",
+    "screenshot": false,
+    "permanentE2E": false
+  },
+  "limitations": [
+    "Suite de navegador ejecutada con Chromium; responsive acotado a los viewports/casos descritos en qa-final.md.",
+    "La métrica de demora del Dashboard (F17) no tiene aserción E2E específica.",
+    "F18 tiene una observación técnica puntual, pero no test E2E permanente ni captura.",
+    "Lectura humana cronometrada, edición y captura de video real pendientes; 290 s y 413 palabras son presupuesto editorial, no duración medida.",
+    "No hubo envíos externos de correo o mensajería."
+  ],
+  "conclusion": {
+    "technicalValidation": "completada para el alcance automatizado definido",
+    "criticalBugsObserved": 0,
+    "humanVideoValidation": "pendiente"
+  }
+}
