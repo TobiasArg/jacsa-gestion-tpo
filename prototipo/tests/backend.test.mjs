@@ -52,10 +52,10 @@ async function harness(t, { dbPath, demoMode = true } = {}) {
   const address = server.address();
   const base = `http://127.0.0.1:${address.port}`;
 
-  async function call(path, { method = 'GET', body, cookie, header = true, origin } = {}) {
+  async function call(path, { method = 'GET', body, rawBody, contentType = 'application/json', cookie, header = true, origin } = {}) {
     const headers = {};
     if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
-      headers['Content-Type'] = 'application/json';
+      headers['Content-Type'] = contentType;
       if (header) headers['X-Jacsa-Request'] = '1';
     }
     if (cookie) headers.Cookie = cookie;
@@ -63,10 +63,11 @@ async function harness(t, { dbPath, demoMode = true } = {}) {
     const response = await fetch(`${base}${path}`, {
       method,
       headers,
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      ...(rawBody !== undefined ? { body: rawBody } : body === undefined ? {} : { body: JSON.stringify(body) }),
     });
     const raw = await response.text();
-    return { status: response.status, headers: response.headers, body: raw ? JSON.parse(raw) : null };
+    const isJson = response.headers.get('content-type')?.includes('application/json');
+    return { status: response.status, headers: response.headers, body: raw ? (isJson ? JSON.parse(raw) : raw) : null };
   }
 
   return { call, close, dbPath: resolvedDbPath };
@@ -186,6 +187,7 @@ test('login crea cookie HttpOnly SameSite Strict, /me y logout conservan el cont
   assert.equal('password' in result.body.user, false);
   assert.deepEqual((await h.call('/api/me', { cookie: result.cookie })).body.user, result.body.user);
   assert.deepEqual((await h.call('/api/logout', { method: 'POST', cookie: result.cookie, body: {} })).body, { ok: true });
+  assert.deepEqual((await h.call('/api/logout', { method: 'POST', cookie: result.cookie, body: {} })).body, { ok: true });
   assert.equal((await h.call('/api/me', { cookie: result.cookie })).body.user, null);
 });
 
@@ -241,6 +243,32 @@ test('clientes Alfa y Beta reciben únicamente sus registros comerciales', async
   assert.deepEqual(betaData.orders.map((order) => order.id), ['order-demo-002']);
   assert.equal(alfaData.requests.length, 0);
   assert.deepEqual(alfaData.insumos, []);
+});
+
+test('el cliente no ve borradores ni cotizaciones Pendiente vencidas; las recibe al enviarlas', async (t) => {
+  const h = await harness(t);
+  const managerCookie = await manager(h);
+  const created = await h.call('/api/quotes', {
+    method: 'POST', cookie: managerCookie,
+    body: { clientId: 'CLI-ALFA', articleId: 'ART-001', quantity: 1, unit: 'unidad', markupPercent: 25, validDays: 7 },
+  });
+  assert.equal(created.status, 201);
+
+  changeDatabase(h.dbPath, "UPDATE quotes SET expires_at = '2000-01-01T00:00:00.000Z' WHERE id = ?", created.body.id);
+  const alfaCookie = (await login(h, 'cliente')).cookie;
+  const beforeSend = (await h.call('/api/bootstrap', { cookie: alfaCookie })).body;
+  assert.equal(beforeSend.quotes.some((quote) => quote.id === created.body.id), false);
+
+  changeDatabase(h.dbPath, "UPDATE quotes SET expires_at = '2099-01-01T00:00:00.000Z' WHERE id = ?", created.body.id);
+  assert.equal((await h.call(`/api/quotes/${created.body.id}/send`, {
+    method: 'POST', cookie: managerCookie, body: {},
+  })).status, 200);
+  const afterSend = (await h.call('/api/bootstrap', { cookie: alfaCookie })).body;
+  assert.equal(afterSend.quotes.find((quote) => quote.id === created.body.id).status, 'Enviada');
+
+  const betaCookie = (await login(h, 'cliente2')).cookie;
+  const betaData = (await h.call('/api/bootstrap', { cookie: betaCookie })).body;
+  assert.equal(betaData.quotes.some((quote) => quote.id === created.body.id), false);
 });
 
 test('cliente recibe precio público sin costos, margen ni artículo privado', async (t) => {
@@ -371,7 +399,7 @@ test('estimación especial, sin equivalente y con precio vencido no publica impo
   assert.equal('priceCents' in article, false);
 });
 
-test('solicitud pública valida CUIT y consentimiento antes de persistir', async (t) => {
+test('solicitud pública valida CUIT/consentimiento y no asocia una sesión staff por email/CUIT', async (t) => {
   const h = await harness(t);
   const base = {
     articleId: 'ART-001', quantity: 1, unit: 'unidad', special: false, notes: '',
@@ -385,6 +413,26 @@ test('solicitud pública valida CUIT y consentimiento antes de persistir', async
   assert.equal(badCuit.body.code, 'INVALID_CUIT');
   assert.equal(noConsent.status, 400);
   assert.equal(noConsent.body.code, 'CONSENT_REQUIRED');
+
+  const authenticatedRoles = {
+    manager: await manager(h),
+    admin: (await login(h, 'lorena')).cookie,
+    operator: (await login(h, 'operario')).cookie,
+    technology: (await login(h, 'sergio')).cookie,
+  };
+  const roleResponses = await Promise.all(Object.entries(authenticatedRoles).map(async ([role, cookie]) => {
+    const response = await h.call('/api/requests', {
+      method: 'POST', cookie, body: { ...base, cuit: '30709999997', email: 'alfa@example.com', consent: true },
+    });
+    return { role, status: response.status, code: response.body.code ?? null, id: response.body.id };
+  }));
+  assert.deepEqual(roleResponses.map(({ role, status, code }) => [role, status, code]),
+    Object.keys(authenticatedRoles).map((role) => [role, 201, null]));
+  for (const { role, id } of roleResponses) {
+    assert.equal(typeof id, 'string', `${role} recibe una solicitud creada`);
+    assert.equal(readDatabase(h.dbPath, 'SELECT client_id FROM requests WHERE id = ?', id).client_id, null,
+      `${role}: email/CUIT de Alfa no asocian una sesión staff a CLI-ALFA`);
+  }
 });
 
 test('solicitud pública no asocia por email y rechaza marcado HTML en los datos', async (t) => {
@@ -433,6 +481,38 @@ test('solicitud desde sesión de cliente se vincula a su cuenta, nunca por email
   assert.equal(request.status, 201);
   const bootstrap = (await h.call('/api/bootstrap', { cookie })).body;
   assert.equal(bootstrap.requests.find((item) => item.id === request.body.id).clientId, 'CLI-ALFA');
+  const betaCookie = (await login(h, 'cliente2')).cookie;
+  const betaRequests = (await h.call('/api/bootstrap', { cookie: betaCookie })).body.requests;
+  assert.equal(betaRequests.some((item) => item.id === request.body.id), false);
+});
+
+test('cotizar una solicitud anónima la vincula al cliente elegido y la hace visible solo para él', async (t) => {
+  const h = await harness(t);
+  const request = await h.call('/api/requests', {
+    method: 'POST', body: {
+      articleId: 'ART-001', quantity: 1, unit: 'unidad', special: false, notes: '',
+      company: 'Cliente potencial', cuit: cuitFrom(), email: 'alfa@example.com', phone: '123456789', consent: true,
+    },
+  });
+  assert.equal(request.status, 201);
+  assert.equal(readDatabase(h.dbPath, 'SELECT client_id FROM requests WHERE id = ?', request.body.id).client_id, null);
+
+  const managerCookie = await manager(h);
+  const created = await h.call('/api/quotes', {
+    method: 'POST', cookie: managerCookie,
+    body: {
+      clientId: 'CLI-ALFA', articleId: 'ART-001', quantity: 1, unit: 'unidad', markupPercent: 25, validDays: 7,
+      requestId: request.body.id,
+    },
+  });
+  assert.equal(created.status, 201, JSON.stringify(created.body));
+  const linkedRequest = readDatabase(h.dbPath, 'SELECT client_id, status FROM requests WHERE id = ?', request.body.id);
+  assert.equal(linkedRequest.client_id, 'CLI-ALFA');
+  assert.equal(linkedRequest.status, 'Cotizada');
+
+  const alfaCookie = (await login(h, 'cliente')).cookie;
+  const alfaRequests = (await h.call('/api/bootstrap', { cookie: alfaCookie })).body.requests;
+  assert.equal(alfaRequests.some((item) => item.id === request.body.id), true);
   const betaCookie = (await login(h, 'cliente2')).cookie;
   const betaRequests = (await h.call('/api/bootstrap', { cookie: betaCookie })).body.requests;
   assert.equal(betaRequests.some((item) => item.id === request.body.id), false);
@@ -492,6 +572,31 @@ test('cotización vencida se calcula en GET sin mutar su estado persistido', asy
   const sent = await h.call(`/api/quotes/${created.body.id}/send`, { method: 'POST', cookie, body: {} });
   assert.equal(sent.status, 409);
   assert.equal(sent.body.code, 'QUOTE_EXPIRED');
+
+  const sentQuote = await h.call('/api/quotes', {
+    method: 'POST', cookie,
+    body: { clientId: 'CLI-ALFA', articleId: 'ART-001', quantity: 1, unit: 'unidad', markupPercent: 25, validDays: 7 },
+  });
+  assert.equal(sentQuote.status, 201);
+  assert.equal((await h.call(`/api/quotes/${sentQuote.body.id}/send`, { method: 'POST', cookie, body: {} })).status, 200);
+  changeDatabase(h.dbPath, "UPDATE quotes SET expires_at = '2000-01-01T00:00:00.000Z' WHERE id = ?", sentQuote.body.id);
+  const expiredAccept = await h.call(`/api/quotes/${sentQuote.body.id}/accept`, { method: 'POST', cookie, body: {} });
+  assert.equal(expiredAccept.status, 409);
+  assert.equal(expiredAccept.body.code, 'QUOTE_EXPIRED');
+
+  const acceptedQuote = await h.call('/api/quotes', {
+    method: 'POST', cookie,
+    body: { clientId: 'CLI-ALFA', articleId: 'ART-001', quantity: 1, unit: 'unidad', markupPercent: 25, validDays: 7 },
+  });
+  assert.equal(acceptedQuote.status, 201);
+  assert.equal((await h.call(`/api/quotes/${acceptedQuote.body.id}/send`, { method: 'POST', cookie, body: {} })).status, 200);
+  assert.equal((await h.call(`/api/quotes/${acceptedQuote.body.id}/accept`, { method: 'POST', cookie, body: {} })).status, 200);
+  changeDatabase(h.dbPath, "UPDATE quotes SET expires_at = '2000-01-01T00:00:00.000Z' WHERE id = ?", acceptedQuote.body.id);
+  const expiredOrder = await h.call(`/api/quotes/${acceptedQuote.body.id}/order`, {
+    method: 'POST', cookie, body: { dueDate: dueDate() },
+  });
+  assert.equal(expiredOrder.status, 409);
+  assert.equal(expiredOrder.body.code, 'QUOTE_EXPIRED');
 });
 
 test('convertir cotización a pedido es idempotente y reserva parcialmente el material', async (t) => {
@@ -545,17 +650,27 @@ test('inicio de producción se bloquea por faltante y funciona tras la recepció
     .find((order) => order.id === orderId).status, 'En producción');
 });
 
-test('planificación rechaza máquinas incompatibles y máquinas ocupadas', async (t) => {
+test('planificación rechaza incompatibilidad, permite encolar ocupado y conserva el bloqueo de inicio', async (t) => {
   const h = await harness(t);
   const cookie = await manager(h);
   const incompatible = await planOrder(h, cookie, 'order-demo-002', 'M-01');
   assert.equal(incompatible.status, 409);
   assert.equal(incompatible.body.code, 'MACHINE_INCOMPATIBLE');
-  assert.equal((await h.call('/api/orders/order-demo-001/start', { method: 'POST', cookie, body: {} })).status, 200);
+  const firstStarted = await h.call('/api/orders/order-demo-001/start', { method: 'POST', cookie, body: {} });
+  assert.equal(firstStarted.status, 200);
   const { orderId } = await makeOrder(h, cookie);
-  const busy = await planOrder(h, cookie, orderId, 'M-09');
-  assert.equal(busy.status, 409);
-  assert.equal(busy.body.code, 'MACHINE_BUSY');
+  await receiveBlackMaterials(h, cookie);
+  const queued = await planOrder(h, cookie, orderId, 'M-09');
+  assert.equal(queued.status, 200);
+  const blocked = await h.call(`/api/orders/${orderId}/start`, { method: 'POST', cookie, body: {} });
+  assert.equal(blocked.status, 409);
+  assert.equal(blocked.body.code, 'MACHINE_BUSY');
+
+  const firstReady = await h.call('/api/orders/order-demo-001/progress', {
+    method: 'POST', cookie, body: { producedUnits: 200, qualityChecked: true },
+  });
+  assert.equal(firstReady.status, 200, JSON.stringify(firstReady.body));
+  assert.equal((await h.call(`/api/orders/${orderId}/start`, { method: 'POST', cookie, body: {} })).status, 200);
 });
 
 test('producción incremental consume reserva una sola vez y el control de calidad marca Listo', async (t) => {
@@ -593,6 +708,61 @@ test('producción incremental consume reserva una sola vez y el control de calid
   assert.equal(finalOrder.status, 'Listo');
   assert.equal(finalOrder.qualityChecked, true);
   assert.equal(finalOrder.requirements.find((item) => item.insumoId === 'INS-NEGRO').consumedGrams, 576);
+});
+
+test('belowMinimum usa el stock físico e indica bajo mínimo solo tras consumir', async (t) => {
+  const h = await harness(t);
+  const cookie = await manager(h);
+  const initial = (await h.call('/api/bootstrap', { cookie })).body;
+  for (const id of ['INS-NEGRO', 'INS-ALMA']) {
+    assert.equal(initial.insumos.find((item) => item.id === id).belowMinimum, false);
+  }
+
+  const { orderId } = await makeOrder(h, cookie);
+  await planOrder(h, cookie, orderId);
+  await receiveBlackMaterials(h, cookie);
+  assert.equal((await h.call(`/api/orders/${orderId}/start`, { method: 'POST', cookie, body: {} })).status, 200);
+  const produced = await h.call(`/api/orders/${orderId}/progress`, {
+    method: 'POST', cookie, body: { producedUnits: 288, qualityChecked: true },
+  });
+  assert.equal(produced.status, 200);
+
+  const after = (await h.call('/api/bootstrap', { cookie })).body;
+  assert.deepEqual(['INS-NEGRO', 'INS-ALMA'].map((id) => {
+    const item = after.insumos.find((insumo) => insumo.id === id);
+    return [item.stockGrams, item.minGrams, item.belowMinimum];
+  }), [[24, 100, true], [12, 50, true]]);
+  const operatorCookie = (await login(h, 'operario')).cookie;
+  const operatorInsumos = (await h.call('/api/bootstrap', { cookie: operatorCookie })).body.insumos;
+  assert.equal(operatorInsumos.find((item) => item.id === 'INS-NEGRO').belowMinimum, true);
+  assert.equal(operatorInsumos.find((item) => item.id === 'INS-ALMA').belowMinimum, true);
+});
+
+test('delayed se calcula por fecha UTC y estado para staff, no se expone al cliente', async (t) => {
+  const h = await harness(t);
+  const managerCookie = await manager(h);
+  const orderId = 'order-demo-001';
+  const before = (await h.call('/api/bootstrap', { cookie: managerCookie })).body.orders
+    .find((order) => order.id === orderId);
+  assert.equal(before.delayed, false);
+
+  changeDatabase(h.dbPath, 'UPDATE orders SET due_date = ? WHERE id = ?', dueDate(-1), orderId);
+  const delayedManagerOrder = (await h.call('/api/bootstrap', { cookie: managerCookie })).body.orders
+    .find((order) => order.id === orderId);
+  assert.equal(delayedManagerOrder.delayed, true);
+  const operatorCookie = (await login(h, 'operario')).cookie;
+  const delayedOperatorOrder = (await h.call('/api/bootstrap', { cookie: operatorCookie })).body.orders
+    .find((order) => order.id === orderId);
+  assert.equal(delayedOperatorOrder.delayed, true);
+  const clientCookie = (await login(h, 'cliente')).cookie;
+  const clientOrder = (await h.call('/api/bootstrap', { cookie: clientCookie })).body.orders
+    .find((order) => order.id === orderId);
+  assert.equal('delayed' in clientOrder, false);
+
+  changeDatabase(h.dbPath, "UPDATE orders SET status = 'Entregado' WHERE id = ?", orderId);
+  const delivered = (await h.call('/api/bootstrap', { cookie: managerCookie })).body.orders
+    .find((order) => order.id === orderId);
+  assert.equal(delivered.delayed, false);
 });
 
 test('avance rechaza decrementos, sobreproducción y calidad incompleta', async (t) => {
@@ -695,6 +865,71 @@ test('sin email de contacto el aviso queda pendiente y el cambio de estado se co
   assert.equal(notification.status, 'Pendiente de reintento');
 });
 
+test('cotización enviada y cambio de fecha se confirman con destinatario vacío, dejando avisos pendientes', async (t) => {
+  const h = await harness(t);
+  const cookie = await manager(h);
+  const quote = await h.call('/api/quotes', {
+    method: 'POST', cookie,
+    body: { clientId: 'CLI-ALFA', articleId: 'ART-001', quantity: 1, unit: 'unidad', markupPercent: 25, validDays: 7 },
+  });
+  assert.equal(quote.status, 201);
+  changeDatabase(h.dbPath, "UPDATE clients SET email = '   ' WHERE id = 'CLI-ALFA'");
+
+  const sent = await h.call(`/api/quotes/${quote.body.id}/send`, { method: 'POST', cookie, body: {} });
+  assert.equal(sent.status, 200);
+  const quoteData = (await h.call('/api/bootstrap', { cookie })).body;
+  assert.equal(quoteData.quotes.find((item) => item.id === quote.body.id).status, 'Enviada');
+  const quoteNotice = quoteData.notifications.find((item) => item.quoteId === quote.body.id);
+  assert.equal(quoteNotice.recipient, '');
+  assert.equal(quoteNotice.status, 'Pendiente de reintento');
+
+  assert.equal((await h.call(`/api/quotes/${quote.body.id}/accept`, { method: 'POST', cookie, body: {} })).status, 200);
+  const order = await h.call(`/api/quotes/${quote.body.id}/order`, {
+    method: 'POST', cookie, body: { dueDate: dueDate() },
+  });
+  assert.equal(order.status, 200);
+  const nextDueDate = dueDate(10);
+  const changed = await h.call(`/api/orders/${order.body.id}/date`, {
+    method: 'POST', cookie, body: { dueDate: nextDueDate, memo: 'Reprogramación acordada' },
+  });
+  assert.equal(changed.status, 200);
+  const updated = (await h.call('/api/bootstrap', { cookie })).body;
+  assert.equal(updated.orders.find((item) => item.id === order.body.id).dueDate, nextDueDate);
+  const dateNotice = updated.notifications.find((item) => item.orderId === order.body.id);
+  assert.equal(dateNotice.recipient, '');
+  assert.equal(dateNotice.status, 'Pendiente de reintento');
+});
+
+test('reintentar sin contacto no altera el aviso y registra el mismo evento al restaurar el email', async (t) => {
+  const h = await harness(t);
+  const cookie = await manager(h);
+  changeDatabase(h.dbPath, "UPDATE clients SET email = '' WHERE id = 'CLI-ALFA'");
+  const quote = await h.call('/api/quotes', {
+    method: 'POST', cookie,
+    body: { clientId: 'CLI-ALFA', articleId: 'ART-001', quantity: 1, unit: 'unidad', markupPercent: 25, validDays: 7 },
+  });
+  assert.equal(quote.status, 201);
+  assert.equal((await h.call(`/api/quotes/${quote.body.id}/send`, { method: 'POST', cookie, body: {} })).status, 200);
+  const notice = (await h.call('/api/bootstrap', { cookie })).body.notifications
+    .find((item) => item.quoteId === quote.body.id);
+  const before = readDatabase(h.dbPath,
+    'SELECT recipient, status, retry_count FROM notifications WHERE id = ?', notice.id);
+  const missing = await h.call(`/api/notifications/${notice.id}/retry`, { method: 'POST', cookie, body: {} });
+  assert.equal(missing.status, 409);
+  assert.equal(missing.body.code, 'NOTIFICATION_RECIPIENT_MISSING');
+  assert.deepEqual(readDatabase(h.dbPath,
+    'SELECT recipient, status, retry_count FROM notifications WHERE id = ?', notice.id), before);
+
+  changeDatabase(h.dbPath, "UPDATE clients SET email = '  reintento@example.com  ' WHERE id = 'CLI-ALFA'");
+  const retried = await h.call(`/api/notifications/${notice.id}/retry`, { method: 'POST', cookie, body: {} });
+  assert.equal(retried.status, 200);
+  assert.deepEqual({ ...readDatabase(h.dbPath,
+    'SELECT recipient, status, retry_count FROM notifications WHERE id = ?', notice.id) }, {
+    recipient: 'reintento@example.com', status: 'Registrada', retry_count: 1,
+  });
+  assert.equal(readDatabase(h.dbPath, 'SELECT COUNT(*) AS count FROM notifications WHERE quote_id = ?', quote.body.id).count, 1);
+});
+
 test('cambio de fecha exige motivo y reintento actualiza el mismo evento outbox', async (t) => {
   const h = await harness(t);
   const cookie = await manager(h);
@@ -762,6 +997,8 @@ test('reset solo opera con modo demo y confirmación, preserva sesión y restabl
   assert.equal(bootstrap.orders.length, 2);
   assert.equal(bootstrap.requests.length, 0);
   assert.equal(bootstrap.insumos.find((item) => item.id === 'INS-NEGRO').stockGrams, 400);
+  const separateDatabase = (await disabled.call('/api/bootstrap', { cookie: disabledCookie })).body;
+  assert.equal(separateDatabase.insumos.find((item) => item.id === 'INS-NEGRO').stockGrams, 400);
 });
 
 test('SQLite y sesión sobreviven al cierre y reapertura de la aplicación', async (t) => {
@@ -780,4 +1017,405 @@ test('SQLite y sesión sobreviven al cierre y reapertura de la aplicación', asy
   const stock = (await second.call('/api/bootstrap', { cookie })).body.insumos.find((item) => item.id === 'INS-NEGRO');
   assert.equal(stock.stockGrams, 477);
   assert.equal((await second.call('/api/bootstrap', { cookie })).body.orders.length, 2);
+});
+
+test('E06 y E08-E22: roles permitidos alcanzan el handler y los no permitidos reciben 403', async (t) => {
+  const h = await harness(t);
+  const cookies = {
+    manager: await manager(h),
+    admin: (await login(h, 'lorena')).cookie,
+    operator: (await login(h, 'operario')).cookie,
+    technology: (await login(h, 'sergio')).cookie,
+    client: (await login(h, 'cliente')).cookie,
+  };
+  const cases = [
+    {
+      id: 'E09', allowed: ['manager'], path: '/api/quotes',
+      body: { clientId: 'CLI-QA-MISSING', articleId: 'ART-001', quantity: 1, unit: 'unidad', markupPercent: 25, validDays: 7 },
+      status: 404, code: 'CLIENT_NOT_FOUND',
+    },
+    {
+      id: 'E10', allowed: ['manager'], path: '/api/quotes/quote-qa-missing/send',
+      body: {}, status: 404, code: 'QUOTE_NOT_FOUND',
+    },
+    {
+      id: 'E11', allowed: ['manager'], path: '/api/quotes/quote-qa-missing/accept',
+      body: {}, status: 404, code: 'QUOTE_NOT_FOUND',
+    },
+    {
+      id: 'E12', allowed: ['manager'], path: '/api/quotes/quote-qa-missing/order',
+      body: { dueDate: dueDate() }, status: 404, code: 'QUOTE_NOT_FOUND',
+    },
+    {
+      id: 'E13', allowed: ['manager', 'admin'], path: '/api/stock/receive',
+      body: { insumoId: 'INS-QA-MISSING', grams: 1, memo: 'Prueba de permisos' },
+      status: 404, code: 'INSUMO_NOT_FOUND',
+    },
+    {
+      id: 'E14', allowed: ['manager', 'admin'], path: '/api/insumos/INS-QA-MISSING/price',
+      body: { priceCentsPerKg: 1 }, status: 404, code: 'INSUMO_NOT_FOUND',
+    },
+    {
+      id: 'E15', allowed: ['manager'], path: '/api/orders/order-qa-missing/plan',
+      body: { machineId: 'M-01', priority: 1 }, status: 404, code: 'ORDER_NOT_FOUND',
+    },
+    {
+      id: 'E16', allowed: ['operator', 'manager'], path: '/api/orders/order-qa-missing/start',
+      body: {}, status: 404, code: 'ORDER_NOT_FOUND',
+    },
+    {
+      id: 'E17', allowed: ['operator', 'manager'], path: '/api/orders/order-qa-missing/progress',
+      body: { producedUnits: 0, qualityChecked: false }, status: 404, code: 'ORDER_NOT_FOUND',
+    },
+    {
+      id: 'E18', allowed: ['manager', 'admin'], path: '/api/orders/order-qa-missing/state',
+      body: { status: 'Entregado' }, status: 404, code: 'ORDER_NOT_FOUND',
+    },
+    {
+      id: 'E19', allowed: ['manager'], path: '/api/orders/order-qa-missing/date',
+      body: { dueDate: dueDate(), memo: 'Prueba de permisos' }, status: 404, code: 'ORDER_NOT_FOUND',
+    },
+    {
+      id: 'E20', allowed: ['manager', 'admin'],
+      path: '/api/notifications/notification-qa-missing/retry',
+      body: {}, status: 404, code: 'NOTIFICATION_NOT_FOUND',
+    },
+    {
+      id: 'E21', allowed: ['manager', 'technology'], path: '/api/demo/reset',
+      body: { confirmation: 'NO REINICIAR' }, status: 400, code: 'CONFIRMATION_REQUIRED',
+    },
+    {
+      id: 'E22', allowed: ['technology'], path: '/api/users/usr-qa-missing/enabled',
+      body: { enabled: true }, status: 404, code: 'USER_NOT_FOUND',
+    },
+  ];
+
+  for (const role of Object.keys(cookies)) {
+    const bootstrap = await h.call('/api/bootstrap', { cookie: cookies[role] });
+    assert.equal(bootstrap.status, 200, `E08 para rol ${role}`);
+  }
+  assert.equal((await h.call('/api/estimate', {
+    method: 'POST', body: { articleId: 'ART-001', quantity: 1, unit: 'unidad' },
+  })).status, 200, 'E06 permite consulta pública');
+  for (const role of ['manager', 'admin', 'client']) {
+    const estimate = await h.call('/api/estimate', {
+      method: 'POST', cookie: cookies[role], body: { articleId: 'ART-001', quantity: 1, unit: 'unidad' },
+    });
+    assert.equal(estimate.status, 200, `E06 debe permitir ${role}`);
+  }
+  for (const role of ['operator', 'technology']) {
+    const estimate = await h.call('/api/estimate', {
+      method: 'POST', cookie: cookies[role], body: { articleId: 'ART-001', quantity: 1, unit: 'unidad' },
+    });
+    assert.equal(estimate.status, 403, `E06 debe restringir ${role}`);
+    assert.equal(estimate.body.code, 'FORBIDDEN');
+  }
+  for (const operation of cases) {
+    for (const role of operation.allowed) {
+      const response = await h.call(operation.path, {
+        method: 'POST', cookie: cookies[role], body: operation.body,
+      });
+      assert.equal(response.status, operation.status, `${operation.id}: ${role} debe llegar a la regla de negocio: ${JSON.stringify(response.body)}`);
+      assert.equal(response.body.code, operation.code, `${operation.id}: resultado de negocio para ${role}`);
+    }
+    for (const role of Object.keys(cookies).filter((candidate) => !operation.allowed.includes(candidate))) {
+      const denied = await h.call(operation.path, {
+        method: 'POST', cookie: cookies[role], body: operation.body,
+      });
+      assert.equal(denied.status, 403, `${operation.id}: ${role} debe ser rechazado`);
+      assert.equal(denied.body.code, 'FORBIDDEN', `${operation.id}: rechazo de rol`);
+    }
+    const unauthenticated = await h.call(operation.path, { method: 'POST', body: operation.body });
+    assert.equal(unauthenticated.status, 401, `${operation.id}: sin sesión debe ser rechazado`);
+    assert.equal(unauthenticated.body.code, 'UNAUTHENTICATED', `${operation.id}: rechazo sin sesión`);
+  }
+});
+
+test('transporte JSON rechaza tipo, sintaxis y tamaño inválidos; rutas desconocidas conservan HTTP y formato', async (t) => {
+  const h = await harness(t);
+  const wrongType = await h.call('/api/login', {
+    method: 'POST', contentType: 'text/plain', rawBody: '{}',
+  });
+  assert.equal(wrongType.status, 400);
+  assert.equal(wrongType.body.code, 'JSON_REQUIRED');
+
+  const malformed = await h.call('/api/login', {
+    method: 'POST', rawBody: '{',
+  });
+  assert.equal(malformed.status, 400);
+  assert.equal(malformed.body.code, 'INVALID_JSON');
+
+  const tooLarge = await h.call('/api/requests', {
+    method: 'POST', rawBody: JSON.stringify({ notes: 'x'.repeat(65_536) }),
+  });
+  assert.equal(tooLarge.status, 400);
+  assert.equal(tooLarge.body.code, 'REQUEST_TOO_LARGE');
+
+  const unknownApi = await h.call('/api/no-existe');
+  assert.equal(unknownApi.status, 404);
+  assert.deepEqual(unknownApi.body, { error: 'No se encontró la ruta', code: 'NOT_FOUND' });
+  const unknownPage = await h.call('/ruta-inexistente');
+  assert.equal(unknownPage.status, 200);
+  assert.match(unknownPage.headers.get('content-type'), /text\/html/);
+});
+
+test('límites de cantidad y cotización aceptan máximos válidos y rechazan valores fuera de rango', async (t) => {
+  const h = await harness(t);
+  const estimateAtLimit = await h.call('/api/estimate', {
+    method: 'POST', body: { articleId: 'ART-001', quantity: 1_000_000, unit: 'unidad' },
+  });
+  assert.equal(estimateAtLimit.status, 200);
+  assert.equal(estimateAtLimit.body.units, 1_000_000);
+
+  const tooManyUnits = await h.call('/api/estimate', {
+    method: 'POST', body: { articleId: 'ART-001', quantity: 6_945, unit: 'gruesa' },
+  });
+  assert.equal(tooManyUnits.status, 400);
+  assert.equal(tooManyUnits.body.code, 'QUANTITY_LIMIT');
+  const invalidQuantity = await h.call('/api/estimate', {
+    method: 'POST', body: { articleId: 'ART-001', quantity: 0, unit: 'unidad' },
+  });
+  assert.equal(invalidQuantity.status, 400);
+  assert.equal(invalidQuantity.body.code, 'INVALID_INPUT');
+
+  const cookie = await manager(h);
+  const quoteInput = { clientId: 'CLI-ALFA', articleId: 'ART-001', quantity: 1, unit: 'unidad', markupPercent: 500, validDays: 365 };
+  const maximumQuote = await h.call('/api/quotes', { method: 'POST', cookie, body: quoteInput });
+  assert.equal(maximumQuote.status, 201, JSON.stringify(maximumQuote.body));
+  for (const invalid of [
+    { ...quoteInput, markupPercent: 500.01 },
+    { ...quoteInput, markupPercent: -0.01 },
+    { ...quoteInput, validDays: 366 },
+    { ...quoteInput, validDays: 0 },
+    { ...quoteInput, quantity: 6_945, unit: 'gruesa' },
+  ]) {
+    const response = await h.call('/api/quotes', { method: 'POST', cookie, body: invalid });
+    assert.equal(response.status, 400);
+    assert.ok(['INVALID_INPUT', 'QUANTITY_LIMIT'].includes(response.body.code), JSON.stringify(response.body));
+  }
+});
+
+test('recepción y precio de insumo aplican máximos, mínimos y sanitización de texto', async (t) => {
+  const h = await harness(t);
+  const cookie = await manager(h);
+  const maximumReceipt = await h.call('/api/stock/receive', {
+    method: 'POST', cookie, body: { insumoId: 'INS-IGNIFUGO', grams: 100_000_000, memo: 'x'.repeat(500) },
+  });
+  assert.equal(maximumReceipt.status, 200, JSON.stringify(maximumReceipt.body));
+  for (const invalid of [
+    { insumoId: 'INS-IGNIFUGO', grams: 0, memo: 'Ingreso' },
+    { insumoId: 'INS-IGNIFUGO', grams: 100_000_001, memo: 'Ingreso' },
+    { insumoId: 'INS-IGNIFUGO', grams: 1, memo: 'x'.repeat(501) },
+    { insumoId: 'INS-IGNIFUGO', grams: 1, memo: 'nota <no permitida>' },
+  ]) {
+    const response = await h.call('/api/stock/receive', { method: 'POST', cookie, body: invalid });
+    assert.equal(response.status, 400);
+    assert.equal(response.body.code, 'INVALID_INPUT');
+  }
+  changeDatabase(h.dbPath, 'UPDATE insumos SET stock_grams = ? WHERE id = ?', 999_999_999_999, 'INS-IGNIFUGO');
+  const stockLimit = await h.call('/api/stock/receive', {
+    method: 'POST', cookie, body: { insumoId: 'INS-IGNIFUGO', grams: 2, memo: 'Excede el stock total' },
+  });
+  assert.equal(stockLimit.status, 400);
+  assert.equal(stockLimit.body.code, 'STOCK_LIMIT');
+  assert.equal(readDatabase(h.dbPath, 'SELECT stock_grams FROM insumos WHERE id = ?', 'INS-IGNIFUGO').stock_grams, 999_999_999_999);
+
+  const maximumPrice = await h.call('/api/insumos/INS-IGNIFUGO/price', {
+    method: 'POST', cookie, body: { priceCentsPerKg: 1_000_000_000 },
+  });
+  assert.equal(maximumPrice.status, 200);
+  for (const priceCentsPerKg of [0, 1_000_000_001]) {
+    const response = await h.call('/api/insumos/INS-IGNIFUGO/price', {
+      method: 'POST', cookie, body: { priceCentsPerKg },
+    });
+    assert.equal(response.status, 400);
+    assert.equal(response.body.code, 'INVALID_INPUT');
+  }
+});
+
+test('solicitud aplica límites de campos, formato de contacto y valida artículo público', async (t) => {
+  const h = await harness(t);
+  const valid = {
+    articleId: 'ART-001', quantity: 1, unit: 'unidad', special: false, notes: '',
+    company: 'Taller', cuit: cuitFrom(), email: 'contacto@example.com', phone: '123456789', consent: true,
+  };
+  const created = await h.call('/api/requests', { method: 'POST', body: valid });
+  assert.equal(created.status, 201);
+  const invalidCases = [
+    { ...valid, company: 'x'.repeat(121) },
+    { ...valid, email: `${'x'.repeat(250)}@a.co` },
+    { ...valid, phone: '123456' },
+    { ...valid, notes: 'x'.repeat(1_001) },
+    { ...valid, articleId: 'ART-003' },
+  ];
+  const expectedCodes = ['INVALID_INPUT', 'INVALID_INPUT', 'INVALID_PHONE', 'INVALID_INPUT', 'INVALID_ARTICLE'];
+  for (const [index, body] of invalidCases.entries()) {
+    const response = await h.call('/api/requests', { method: 'POST', body });
+    assert.equal(response.status, 400);
+    assert.equal(response.body.code, expectedCodes[index]);
+  }
+});
+
+test('estados y fechas inválidos se rechazan antes de alterar cotización y pedido', async (t) => {
+  const h = await harness(t);
+  const cookie = await manager(h);
+  const quote = await h.call('/api/quotes', {
+    method: 'POST', cookie,
+    body: { clientId: 'CLI-ALFA', articleId: 'ART-001', quantity: 1, unit: 'unidad', markupPercent: 25, validDays: 7 },
+  });
+  assert.equal(quote.status, 201);
+
+  const acceptBeforeSend = await h.call(`/api/quotes/${quote.body.id}/accept`, { method: 'POST', cookie, body: {} });
+  assert.equal(acceptBeforeSend.status, 409);
+  assert.equal(acceptBeforeSend.body.code, 'INVALID_QUOTE_STATE');
+  const orderBeforeAccept = await h.call(`/api/quotes/${quote.body.id}/order`, {
+    method: 'POST', cookie, body: { dueDate: dueDate() },
+  });
+  assert.equal(orderBeforeAccept.status, 409);
+  assert.equal(orderBeforeAccept.body.code, 'INVALID_QUOTE_STATE');
+
+  assert.equal((await h.call(`/api/quotes/${quote.body.id}/send`, { method: 'POST', cookie, body: {} })).status, 200);
+  const duplicateSend = await h.call(`/api/quotes/${quote.body.id}/send`, { method: 'POST', cookie, body: {} });
+  assert.equal(duplicateSend.status, 409);
+  assert.equal(duplicateSend.body.code, 'INVALID_QUOTE_STATE');
+  assert.equal((await h.call(`/api/quotes/${quote.body.id}/accept`, { method: 'POST', cookie, body: {} })).status, 200);
+  const duplicateAccept = await h.call(`/api/quotes/${quote.body.id}/accept`, { method: 'POST', cookie, body: {} });
+  assert.equal(duplicateAccept.status, 409);
+  assert.equal(duplicateAccept.body.code, 'INVALID_QUOTE_STATE');
+
+  for (const invalidDate of ['2026-02-30', dueDate(-1), '29/10/2026']) {
+    const response = await h.call(`/api/quotes/${quote.body.id}/order`, {
+      method: 'POST', cookie, body: { dueDate: invalidDate },
+    });
+    assert.equal(response.status, 400);
+    assert.equal(response.body.code, 'INVALID_DATE');
+  }
+  const originalDueDate = dueDate();
+  const order = await h.call(`/api/quotes/${quote.body.id}/order`, {
+    method: 'POST', cookie, body: { dueDate: originalDueDate },
+  });
+  assert.equal(order.status, 200);
+
+  const invalidStatusValue = await h.call(`/api/orders/${order.body.id}/state`, {
+    method: 'POST', cookie, body: { status: 'Pagado' },
+  });
+  assert.equal(invalidStatusValue.status, 400);
+  assert.equal(invalidStatusValue.body.code, 'INVALID_INPUT');
+  const invalidState = await h.call(`/api/orders/${order.body.id}/state`, {
+    method: 'POST', cookie, body: { status: 'Cobrado' },
+  });
+  assert.equal(invalidState.status, 409);
+  assert.equal(invalidState.body.code, 'INVALID_STATE_TRANSITION');
+  for (const priority of [0, 11]) {
+    const invalidPlan = await h.call(`/api/orders/${order.body.id}/plan`, {
+      method: 'POST', cookie, body: { machineId: 'M-01', priority },
+    });
+    assert.equal(invalidPlan.status, 400);
+    assert.equal(invalidPlan.body.code, 'INVALID_INPUT');
+  }
+  const plan = await h.call(`/api/orders/${order.body.id}/plan`, {
+    method: 'POST', cookie, body: { machineId: 'M-01', priority: 1 },
+  });
+  assert.equal(plan.status, 200);
+  const lowestPriority = await h.call(`/api/orders/${order.body.id}/plan`, {
+    method: 'POST', cookie, body: { machineId: 'M-01', priority: 10 },
+  });
+  assert.equal(lowestPriority.status, 200);
+  const start = await h.call(`/api/orders/${order.body.id}/start`, { method: 'POST', cookie, body: {} });
+  assert.equal(start.status, 200);
+  const ready = await h.call(`/api/orders/${order.body.id}/progress`, {
+    method: 'POST', cookie, body: { producedUnits: 1, qualityChecked: true },
+  });
+  assert.equal(ready.status, 200);
+  const delivered = await h.call(`/api/orders/${order.body.id}/state`, {
+    method: 'POST', cookie, body: { status: 'Entregado' },
+  });
+  assert.equal(delivered.status, 200);
+  const finalizedDate = await h.call(`/api/orders/${order.body.id}/date`, {
+    method: 'POST', cookie, body: { dueDate: dueDate(10), memo: 'Pedido finalizado' },
+  });
+  assert.equal(finalizedDate.status, 409);
+  assert.equal(finalizedDate.body.code, 'INVALID_ORDER_STATE');
+  for (const due of ['2026-02-30', dueDate(-1)]) {
+    const invalidReschedule = await h.call(`/api/orders/${order.body.id}/date`, {
+      method: 'POST', cookie, body: { dueDate: due, memo: 'Fecha no válida' },
+    });
+    assert.equal(invalidReschedule.status, 400);
+    assert.equal(invalidReschedule.body.code, 'INVALID_DATE');
+  }
+  const noMemo = await h.call(`/api/orders/${order.body.id}/date`, {
+    method: 'POST', cookie, body: { dueDate: dueDate(10), memo: '' },
+  });
+  assert.equal(noMemo.status, 400);
+  assert.equal(noMemo.body.code, 'INVALID_INPUT');
+  assert.equal((await h.call('/api/bootstrap', { cookie })).body.orders.find((item) => item.id === order.body.id).dueDate, originalDueDate);
+});
+
+test('recepción de stock asigna faltantes FIFO en varios pedidos, no al pedido más nuevo', async (t) => {
+  const h = await harness(t);
+  const cookie = await manager(h);
+  const first = await makeOrder(h, cookie, { quantity: 3, unit: 'gruesa' });
+  const second = await makeOrder(h, cookie, { quantity: 3, unit: 'gruesa' });
+  changeDatabase(h.dbPath, "UPDATE orders SET created_at = '2020-01-01T00:00:00.000Z' WHERE id = ?", first.orderId);
+  changeDatabase(h.dbPath, "UPDATE orders SET created_at = '2020-01-02T00:00:00.000Z' WHERE id = ?", second.orderId);
+
+  await receiveBlackMaterials(h, cookie);
+  const orders = (await h.call('/api/bootstrap', { cookie })).body.orders;
+  const firstOrder = orders.find((item) => item.id === first.orderId);
+  const secondOrder = orders.find((item) => item.id === second.orderId);
+  assert.deepEqual(firstOrder.requirements.map(({ insumoId, reservedGrams }) => [insumoId, reservedGrams]), [
+    ['INS-ALMA', 300], ['INS-NEGRO', 600],
+  ]);
+  assert.deepEqual(secondOrder.requirements.map(({ insumoId, reservedGrams }) => [insumoId, reservedGrams]), [
+    ['INS-ALMA', 0], ['INS-NEGRO', 0],
+  ]);
+});
+
+test('fallo SQLite dentro de la vinculación de cotización revierte cotización y solicitud', async (t) => {
+  const h = await harness(t);
+  const request = await h.call('/api/requests', {
+    method: 'POST', body: {
+      articleId: 'ART-001', quantity: 1, unit: 'unidad', special: false, notes: '',
+      company: 'Prospecto QA', cuit: cuitFrom(), email: 'prospecto@example.com', phone: '123456789', consent: true,
+    },
+  });
+  assert.equal(request.status, 201);
+  changeDatabase(h.dbPath, `CREATE TRIGGER qa_reject_request_link
+    BEFORE UPDATE OF client_id ON requests
+    WHEN NEW.client_id IS NOT NULL
+    BEGIN SELECT RAISE(ABORT, 'qa rollback trigger'); END`);
+
+  const cookie = await manager(h);
+  const failed = await h.call('/api/quotes', {
+    method: 'POST', cookie,
+    body: { clientId: 'CLI-ALFA', articleId: 'ART-001', quantity: 1, unit: 'unidad', markupPercent: 25, validDays: 7, requestId: request.body.id },
+  });
+  assert.equal(failed.status, 500);
+  assert.equal(failed.body.code, 'INTERNAL_ERROR');
+  assert.equal(readDatabase(h.dbPath, 'SELECT COUNT(*) AS count FROM quotes WHERE request_id = ?', request.body.id).count, 0);
+  assert.deepEqual({ ...readDatabase(h.dbPath, 'SELECT client_id, status FROM requests WHERE id = ?', request.body.id) }, {
+    client_id: null, status: 'Nueva',
+  });
+});
+
+test('cuenta deshabilitada puede rehabilitarse con tecnología y requiere nueva sesión', async (t) => {
+  const h = await harness(t);
+  const technologyCookie = (await login(h, 'sergio')).cookie;
+  const oldOperatorCookie = (await login(h, 'operario')).cookie;
+  const disabled = await h.call('/api/users/usr-operario/enabled', {
+    method: 'POST', cookie: technologyCookie, body: { enabled: false },
+  });
+  assert.equal(disabled.status, 200);
+  assert.equal((await h.call('/api/me', { cookie: oldOperatorCookie })).body.user, null);
+  assert.equal((await login(h, 'operario')).status, 401);
+
+  const enabled = await h.call('/api/users/usr-operario/enabled', {
+    method: 'POST', cookie: technologyCookie, body: { enabled: true },
+  });
+  assert.equal(enabled.status, 200);
+  assert.equal((await h.call('/api/me', { cookie: oldOperatorCookie })).body.user, null);
+  const newLogin = await login(h, 'operario');
+  assert.equal(newLogin.status, 200);
+  assert.equal(newLogin.body.user.role, 'operator');
+  assert.deepEqual((await h.call('/api/me', { cookie: newLogin.cookie })).body.user, newLogin.body.user);
 });
