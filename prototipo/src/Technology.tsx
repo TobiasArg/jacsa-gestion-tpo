@@ -1,8 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Check, CircleAlert, DatabaseBackup, MonitorCog, ShieldCheck, UserRoundCog, Users, X } from 'lucide-react';
+import { Check, CircleAlert, DatabaseBackup, MonitorCog, UserRoundCog, Users, X } from 'lucide-react';
 import { ActionFeedback, Badge, Button, Card, EmptyState, Field, Input, PageHeading } from './components';
 import type { Snapshot, User } from './types';
-import { isBrowserDemo } from './browser-mode';
 import { useAction } from './useAction';
 
 export function Technology({ snapshot, refresh, onUnauthorized }: { snapshot: Snapshot; refresh: () => Promise<boolean>; onUnauthorized: () => void }) {
@@ -21,7 +20,7 @@ export function Technology({ snapshot, refresh, onUnauthorized }: { snapshot: Sn
 
   async function resetDemo(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const result = await action.run<{ ok: true }>('reset-demo', '/api/demo/reset', { confirmation }, 'Datos de demostración reiniciados.');
+    const result = await action.run<{ ok: true }>('reset-demo', '/api/demo/reset', { confirmation }, 'Datos del prototipo restablecidos.');
     if (result) {
       setConfirmOpen(false);
       setConfirmation('');
@@ -32,10 +31,10 @@ export function Technology({ snapshot, refresh, onUnauthorized }: { snapshot: Sn
 
   return (
     <div className="page-content">
-      <PageHeading eyebrow="Administración técnica / Accesos" title="Usuarios y entorno demo" description="Cuentas habilitadas y controles acotados al entorno académico." actions={<Badge tone="tone-neutral">Tecnología</Badge>} />
+      <PageHeading eyebrow="Administración / Usuarios y accesos" title="Usuarios y accesos" description="Consulta y habilita las cuentas de usuario del sistema." actions={<Badge tone="tone-neutral">Tecnología</Badge>} />
       <ActionFeedback error={action.error} success={action.success} />
       <Card className="users-card">
-        <div className="section-heading"><div><p className="eyebrow">Accesos locales</p><h2><Users size={19} /> Cuentas de demostración</h2></div><span className="toolbar-note">{activeUsers} / {users.length} HABILITADAS</span></div>
+        <div className="section-heading"><div><p className="eyebrow">Gestión de accesos</p><h2><Users size={19} /> Cuentas de usuario</h2></div><span className="toolbar-note">{activeUsers} / {users.length} HABILITADAS</span></div>
         <p className="users-explainer">La habilitación no cambia el rol ni concede permisos comerciales. Una cuenta deshabilitada pierde sus sesiones al aplicar el cambio.</p>
         {users.length ? <div className="user-list">{users.map((user) => {
           const enabled = user.enabled !== false;
@@ -46,27 +45,22 @@ export function Technology({ snapshot, refresh, onUnauthorized }: { snapshot: Sn
 
       <div className="environment-grid">
         <Card className="environment-card">
-          <div className="environment-icon"><MonitorCog size={21} /></div><p className="eyebrow">Entorno local</p><h2>Demo académica</h2>
-          {isBrowserDemo ? <>
-          <p>El sistema opera con datos ficticios guardados en este navegador. No se comparten en la nube ni entre dispositivos, y no realiza facturación, operaciones bancarias ni envíos externos.</p>
-          <div className="environment-facts"><span><UserRoundCog size={15} /> Perfil de demostración por pestaña</span><span><DatabaseBackup size={15} /> Datos en este navegador</span></div>
-          </> : <>
-          <p>El sistema opera con datos sintéticos en una base local. No realiza facturación, operaciones bancarias ni envíos externos.</p>
-          <div className="environment-facts"><span><ShieldCheck size={15} /> API con sesión segura</span><span><DatabaseBackup size={15} /> Almacenamiento SQLite local</span></div>
-          </>}
+          <div className="environment-icon"><MonitorCog size={21} /></div><p className="eyebrow">Plataforma</p><h2>Prototipo funcional</h2>
+          <p>Explora los flujos de gestión de usuarios, producción, inventario y seguimiento.</p>
+          <div className="environment-facts"><span><UserRoundCog size={15} /> Perfiles y accesos</span><span><DatabaseBackup size={15} /> Datos iniciales</span></div>
         </Card>
         <Card className="reset-card">
-          <span className="reset-icon"><DatabaseBackup size={20} /></span><p className="eyebrow">Acción protegida</p><h2>Reiniciar datos demo</h2>
-          <p>{isBrowserDemo ? 'Restablece los datos de demostración guardados en este navegador. La operación no puede deshacerse y afecta a todas las pestañas abiertas aquí.' : 'Restablece el dataset demostrativo local. La operación no puede deshacerse y solo se permite con el modo demo del servidor habilitado.'}</p>
-          <Button variant="danger" onClick={() => { action.dismiss(); setConfirmation(''); setConfirmOpen(true); }}><CircleAlert size={15} /> Solicitar reinicio</Button>
+          <span className="reset-icon"><DatabaseBackup size={20} /></span><p className="eyebrow">Acción protegida</p><h2>Restablecer datos</h2>
+          <p>Restaura el conjunto inicial de datos. Esta acción no se puede deshacer.</p>
+          <Button variant="danger" onClick={() => { action.dismiss(); setConfirmation(''); setConfirmOpen(true); }}><CircleAlert size={15} /> Restablecer datos</Button>
         </Card>
       </div>
 
       {confirmOpen && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setConfirmOpen(false); }}>
         <section className="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="reset-heading">
           <button className="dialog-close" autoFocus onClick={() => setConfirmOpen(false)} aria-label="Cerrar confirmación"><X size={18} /></button>
-          <span className="dialog-alert-icon"><CircleAlert size={22} /></span><p className="eyebrow">Confirmación requerida</p><h2 id="reset-heading">¿Reiniciar la demo?</h2>
-          <p>{isBrowserDemo ? 'Se reemplazarán los datos de demostración guardados en este navegador. No se contacta ningún servidor.' : 'Se reemplazarán los datos de demostración. Esta acción se envía al servidor, que verificará que el modo demo esté habilitado.'}</p>
+          <span className="dialog-alert-icon"><CircleAlert size={22} /></span><p className="eyebrow">Confirmación requerida</p><h2 id="reset-heading">¿Restablecer los datos?</h2>
+          <p>Los datos actuales se reemplazarán por el conjunto inicial. Esta acción no se puede deshacer.</p>
           <form className="form-stack" onSubmit={resetDemo}>
             <Field label="Escribe exactamente REINICIAR DEMO" htmlFor="reset-confirm"><Input id="reset-confirm" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} autoComplete="off" autoFocus /></Field>
             <ActionFeedback error={action.error} success={action.success} />

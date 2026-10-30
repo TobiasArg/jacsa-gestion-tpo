@@ -19,11 +19,12 @@ async function request<T>(path: string, method: 'GET' | 'POST', body?: unknown):
       const { demoRequest } = await import('./demo/transport.mjs');
       result = await demoRequest(path, method, body);
     } catch {
-      throw new ApiError('No se pudo iniciar la demo local. Comprueba el almacenamiento del navegador e intenta otra vez.', 0);
+      throw new ApiError('No se pudo abrir JACSA Gestión. Inténtalo de nuevo.', 0);
     }
     if (result.status < 200 || result.status >= 300) {
       const problem = result.body && typeof result.body === 'object' ? result.body as { error?: unknown; code?: unknown } : {};
-      const message = typeof problem.error === 'string' ? problem.error : `La solicitud no pudo completarse (${result.status}).`;
+      const message = problem.code === 'INTERNAL_ERROR' ? 'No se pudo completar la solicitud. Inténtalo de nuevo.'
+        : typeof problem.error === 'string' ? problem.error : `La solicitud no pudo completarse (${result.status}).`;
       throw new ApiError(message, result.status, typeof problem.code === 'string' ? problem.code : undefined);
     }
     return result.body as T;

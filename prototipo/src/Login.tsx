@@ -3,7 +3,7 @@ import { ArrowRight, Eye, EyeOff, LockKeyhole, Sparkles } from 'lucide-react';
 import { api, ApiError } from './api';
 import type { User } from './types';
 import { Button, Field, InlineNotice, Input, LogoMark } from './components';
-import { DemoModeNotice, isBrowserDemo } from './browser-mode';
+import { isBrowserDemo } from './browser-mode';
 
 const demoUsers = [
   ['rodrigo', 'Comercial · responsable'],
@@ -41,7 +41,6 @@ export function Login({ onLogin, onOpenCotizador, notice }: { onLogin: (user: Us
         <a href="#/login" className="brand-lockup" aria-label="JACSA Gestión, inicio"><LogoMark /><span><b>JACSA</b><small>GESTIÓN INDUSTRIAL</small></span></a>
         <button className="public-link" onClick={onOpenCotizador}>Cotizador público <ArrowRight size={15} /></button>
       </div>
-      <DemoModeNotice />
       <div className="auth-content">
         <section className="auth-intro">
           <div className="intro-index"><span>01</span><i /></div>
@@ -52,7 +51,7 @@ export function Login({ onLogin, onOpenCotizador, notice }: { onLogin: (user: Us
         </section>
 
         <section className="auth-panel glass-card" aria-labelledby="login-heading">
-          <div className="auth-panel-top"><div className="auth-symbol"><LockKeyhole size={19} /></div><span className="auth-kicker">{isBrowserDemo ? 'Perfil de demostración' : 'Acceso seguro'}</span></div>
+          <div className="auth-panel-top"><div className="auth-symbol"><LockKeyhole size={19} /></div><span className="auth-kicker">{isBrowserDemo ? 'Prototipo funcional' : 'Acceso a JACSA Gestión'}</span></div>
           <h2 id="login-heading">Bienvenido de vuelta</h2>
           <p className="auth-panel-copy">Ingresa con tu cuenta para continuar.</p>
           {notice && !error && <InlineNotice variant="warning" role="alert">{notice}</InlineNotice>}
@@ -70,14 +69,14 @@ export function Login({ onLogin, onOpenCotizador, notice }: { onLogin: (user: Us
             <Button type="submit" disabled={busy} className="auth-submit">{busy ? 'Verificando…' : 'Ingresar'}<ArrowRight size={16} /></Button>
           </form>
           <div className="demo-access">
-            <div className="demo-heading"><Sparkles size={15} /><b>Acceso académico de demostración</b></div>
-            <p>{isBrowserDemo ? 'Elige un perfil ficticio; cada pestaña mantiene el suyo sobre los mismos datos de este navegador:' : 'Estas cuentas son exclusivamente para la demostración local:'}</p>
+            <div className="demo-heading"><Sparkles size={15} /><b>Perfiles disponibles</b></div>
+            <p>Accede con estos perfiles para explorar las funciones del sistema:</p>
             <div className="demo-users">{demoUsers.map(([user, role]) => <span key={user}><b>{user}</b><small>{role}</small></span>)}</div>
-            <p className="demo-password">Contraseña compartida: <code>Jacsa2026!</code></p>
+            <p className="demo-password">Contraseña de acceso: <code>Jacsa2026!</code></p>
           </div>
         </section>
       </div>
-      <footer className="auth-footer"><span>JACSA GESTIÓN</span><span>CORDONERÍA · PRODUCCIÓN · SEGUIMIENTO</span><span>© DEMO ACADÉMICA</span></footer>
+      <footer className="auth-footer"><span>JACSA GESTIÓN</span><span>CORDONERÍA · PRODUCCIÓN · SEGUIMIENTO</span><span>© JACSA</span></footer>
     </main>
   );
 }

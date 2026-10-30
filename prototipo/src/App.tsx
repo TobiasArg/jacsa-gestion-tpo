@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BellRing, Boxes, ClipboardList, FileText, Factory, LayoutDashboard, LogOut, Menu, PanelsTopLeft, RefreshCw, ShieldCheck, UserRoundCog, X } from 'lucide-react';
+import { BellRing, Boxes, ClipboardList, FileText, Factory, LayoutDashboard, LogOut, Menu, PanelsTopLeft, RefreshCw, UserRoundCog, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { api, ApiError } from './api';
 import { Catalog } from './Catalog';
@@ -13,7 +13,7 @@ import { Quotes } from './Quotes';
 import { Stock } from './Stock';
 import { Technology } from './Technology';
 import { Button, InlineNotice, LogoMark } from './components';
-import { DemoModeNotice, isBrowserDemo } from './browser-mode';
+import { isBrowserDemo } from './browser-mode';
 import type { Role, Snapshot, User } from './types';
 import './styles.css';
 
@@ -55,11 +55,11 @@ function roleNavigation(role: Role): NavItem[] {
     { route: 'portal', label: 'Mi portal', icon: LayoutDashboard },
     { route: 'cotizador', label: 'Nueva solicitud', icon: FileText },
   ];
-  return [{ route: 'usuarios', label: 'Usuarios y demo', icon: UserRoundCog }];
+  return [{ route: 'usuarios', label: 'Usuarios y accesos', icon: UserRoundCog }];
 }
 
 const pageNames: Record<string, string> = {
-  dashboard: 'Resumen', catalogo: 'Catálogo', cotizaciones: 'Cotizaciones', pedidos: 'Pedidos', stock: 'Stock e insumos', avisos: 'Bandeja de avisos', cola: 'Cola de producción', portal: 'Mi portal', cotizador: 'Cotizador', usuarios: 'Usuarios y demo',
+  dashboard: 'Resumen', catalogo: 'Catálogo', cotizaciones: 'Cotizaciones', pedidos: 'Pedidos', stock: 'Stock e insumos', avisos: 'Bandeja de avisos', cola: 'Cola de producción', portal: 'Mi portal', cotizador: 'Cotizador', usuarios: 'Usuarios y accesos',
 };
 
 export default function App() {
@@ -87,7 +87,7 @@ export default function App() {
   }, []);
 
   const onUnauthorized = useCallback(() => {
-    setSessionNotice(isBrowserDemo ? 'Tu perfil de demostración se cerró o fue deshabilitado. Ingresa nuevamente para continuar; no se guardaron cambios pendientes.' : 'Tu sesión expiró o se cerró en otro lugar. Ingresa nuevamente para continuar; no se guardaron cambios pendientes.');
+    setSessionNotice('Tu sesión expiró o se cerró en otro lugar. Ingresa nuevamente para continuar; no se guardaron cambios pendientes.');
     setUser(null);
     setSnapshot(null);
     setLoadState('ready');
@@ -245,7 +245,7 @@ export default function App() {
     }
   }
 
-  if (loadState === 'loading' && !user) return <LoadingScreen message={isBrowserDemo ? 'Abriendo demo local…' : 'Comprobando sesión segura…'} />;
+  if (loadState === 'loading' && !user) return <LoadingScreen message="Iniciando JACSA Gestión…" />;
   if (loadState === 'error') return <ErrorScreen message={loadError} onRetry={async () => {
     setLoadState('loading');
     try {
@@ -300,10 +300,10 @@ export default function App() {
   return (
     <div className="app-frame">
       <aside className="sidebar">
-        <div className="sidebar-brand"><button className="brand-lockup sidebar-home" onClick={() => navigate(defaultRoute(user.role))} aria-label="JACSA Gestión, página principal"><LogoMark /><span><b>JACSA</b><small>GESTIÓN INDUSTRIAL</small></span></button><span className="brand-edition">SISTEMA LOCAL</span></div>
+        <div className="sidebar-brand"><button className="brand-lockup sidebar-home" onClick={() => navigate(defaultRoute(user.role))} aria-label="JACSA Gestión, página principal"><LogoMark /><span><b>JACSA</b><small>GESTIÓN INDUSTRIAL</small></span></button><span className="brand-edition">PLATAFORMA</span></div>
         <div className="sidebar-rule"><span>ESPACIO DE TRABAJO</span><i /></div>
         <nav className="side-nav" aria-label="Navegación principal">{menu.map((item) => <NavButton item={item} active={location.route === item.route} onClick={() => navigate(item.route)} key={item.route} />)}</nav>
-        <div className="sidebar-bottom"><div className="cordon-sample"><span /><span /><span /><span /><span /></div><p>CORDONERÍA<br />INDUSTRIAL</p><small>CALIDAD EN CADA HILO</small><div className="sidebar-version">ENTORNO DE DEMOSTRACIÓN</div></div>
+        <div className="sidebar-bottom"><div className="cordon-sample"><span /><span /><span /><span /><span /></div><p>CORDONERÍA<br />INDUSTRIAL</p><small>CALIDAD EN CADA HILO</small><div className="sidebar-version">GESTIÓN OPERATIVA</div></div>
       </aside>
 
       {mobileNavOpen && <button aria-label="Cerrar navegación" className="mobile-nav-scrim" onClick={() => setMobileNavOpen(false)} />}
@@ -312,15 +312,14 @@ export default function App() {
       <div className="app-main">
         <header className="topbar">
           <div className="topbar-left"><button className="mobile-menu-button" onClick={() => setMobileNavOpen(true)} aria-label="Abrir menú" aria-controls="mobile-navigation" aria-expanded={mobileNavOpen}><Menu size={21} /></button><div className="breadcrumb"><span>JACSA /</span><b>{selectedTitle}</b></div></div>
-          <div className="topbar-right"><div className="system-status"><span className="live-dot" /> <span>{isBrowserDemo ? 'Perfil de demostración' : 'Sesión activa'}</span></div><div className="topbar-divider" /><div className="user-menu"><span className="user-avatar-small">{user.name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toLocaleUpperCase('es')}</span><span className="user-menu-copy"><b>{user.name}</b><small>{roleLabel(user.role)}</small></span></div><Button variant="ghost" className="logout-button" onClick={() => void logout()} disabled={logoutBusy}>{logoutBusy ? <RefreshCw size={16} className="spin" /> : <LogOut size={16} />}<span>{logoutBusy ? 'Saliendo…' : 'Salir'}</span></Button></div>
+          <div className="topbar-right"><div className="system-status"><span className="live-dot" /> <span>Sesión activa</span></div><div className="topbar-divider" /><div className="user-menu"><span className="user-avatar-small">{user.name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toLocaleUpperCase('es')}</span><span className="user-menu-copy"><b>{user.name}</b><small>{roleLabel(user.role)}</small></span></div><Button variant="ghost" className="logout-button" onClick={() => void logout()} disabled={logoutBusy}>{logoutBusy ? <RefreshCw size={16} className="spin" /> : <LogOut size={16} />}<span>{logoutBusy ? 'Saliendo…' : 'Salir'}</span></Button></div>
         </header>
         <main className="main-stage">
-          {isBrowserDemo && <div className="shell-feedback"><DemoModeNotice compact /></div>}
           {logoutError && <div className="shell-feedback"><InlineNotice variant="error" role="alert">{logoutError}</InlineNotice></div>}
           {syncError && <div className="shell-feedback"><InlineNotice variant="warning" role="alert"><span>{syncError} Los datos visibles pueden estar desactualizados.</span><button className="inline-retry" onClick={() => void refreshSnapshot()}><RefreshCw size={14} /> Reintentar</button></InlineNotice></div>}
           {primaryPage()}
         </main>
-        <footer className="app-footer"><span>JACSA / GESTIÓN INDUSTRIAL</span>{isBrowserDemo ? <span>PERFIL DE DEMOSTRACIÓN · DATOS EN ESTE NAVEGADOR</span> : <span><ShieldCheck size={13} /> SESIÓN SEGURA · SOLO DATOS LOCALES</span>}<span>SINCRONIZACIÓN CADA 8 S</span></footer>
+        <footer className="app-footer"><span>JACSA / GESTIÓN INDUSTRIAL</span><span>{isBrowserDemo ? 'PROTOTIPO FUNCIONAL' : 'SESIÓN ACTIVA'}</span><span>ACTUALIZACIÓN CADA 8 S</span></footer>
       </div>
     </div>
   );
@@ -336,7 +335,7 @@ function LoadingScreen({ message }: { message: string }) {
 }
 
 function ErrorScreen({ message, onRetry }: { message: string; onRetry: () => void }) {
-  return <main className="error-screen"><div className="error-card"><span className="error-mark"><X size={21} /></span><p className="eyebrow">Conexión interrumpida</p><h1>No pudimos abrir tu espacio.</h1><p>{message}</p><Button onClick={onRetry}><RefreshCw size={15} /> Volver a intentar</Button><small>Los datos no se han reemplazado por información de muestra.</small></div></main>;
+  return <main className="error-screen"><div className="error-card"><span className="error-mark"><X size={21} /></span><p className="eyebrow">Conexión interrumpida</p><h1>No pudimos abrir tu espacio.</h1><p>{message}</p><Button onClick={onRetry}><RefreshCw size={15} /> Volver a intentar</Button></div></main>;
 }
 
 function roleLabel(role: Role): string {

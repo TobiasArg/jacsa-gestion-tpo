@@ -608,14 +608,14 @@ test('F19: deshabilitar invalida sesión; habilitar permite nuevo login sin rest
 test('F20: reset confirmado por UI vuelve al snapshot semilla y conserva sesión técnica', async ({ page, request }) => {
   await order(request);
   await open(page, 'sergio', 'usuarios');
-  await page.getByRole('button', { name: 'Solicitar reinicio' }).click();
+  await page.getByRole('button', { name: 'Restablecer datos' }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog.getByRole('button', { name: 'Confirmar reinicio' })).toBeDisabled();
   await dialog.getByLabel('Escribe exactamente REINICIAR DEMO').fill('REINICIAR DEMO');
   await dialog.getByRole('button', { name: 'Confirmar reinicio' }).click();
-  await expect(page.getByText('Datos de demostración reiniciados.')).toBeVisible();
+  await expect(page.getByText('Datos del prototipo restablecidos.')).toBeVisible();
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'Usuarios y entorno demo' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Usuarios y accesos' })).toBeVisible();
   await auth(request);
   const s = await snapshot(request);
   expect(s.orders.map((x: { id: string }) => x.id).sort()).toEqual(['order-demo-001', 'order-demo-002']);

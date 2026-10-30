@@ -2,6 +2,7 @@ import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 
 // QA del build browser-demo: sin backend. Los datos viven en localStorage del origen y el perfil en sessionStorage de cada pestaña.
 const password = 'Jacsa2026!';
+const obsoleteDemoCopy = /Demo local en este navegador|se guardan solo aquí|no se comparten en la nube|no son una medida de seguridad|datos ficticios|datos sintéticos|entorno académico|académic|entorno de demostración|usuarios y demo|información de muestra|solo datos locales/i;
 
 // Cualquier request a /api/ es un fallo: la demo estática resuelve todo con el engine local.
 // Se aborta en el navegador porque `vite preview` hereda el proxy /api → 127.0.0.1:3001.
@@ -20,7 +21,7 @@ async function login(page: Page, username: string) {
   await page.getByLabel('Contraseña', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Ingresar' }).click();
   await expect(page.locator('.logout-button')).toBeVisible();
-  await expect(page.getByText('Perfil de demostración', { exact: true })).toBeVisible();
+  await expect(page.locator('.app-footer')).toContainText('PROTOTIPO FUNCIONAL');
 }
 
 async function logout(page: Page) {
@@ -33,15 +34,27 @@ async function go(page: Page, route: string, heading: string) {
   await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible();
 }
 
-test('carga estática: título, assets, aviso demo y login sin backend', async ({ page, context }) => {
+test('carga estática: título, assets, login y copy profesional sin backend', async ({ page, context }) => {
   const apiCalls = guardApi(context);
   const failedAssets: string[] = [];
   page.on('response', (response) => { if (response.status() >= 400) failedAssets.push(`${response.status()} ${response.url()}`); });
   await page.goto('/');
   await expect(page).toHaveTitle(/JACSA/);
   await expect(page.getByRole('heading', { name: 'Bienvenido de vuelta' })).toBeVisible();
-  await expect(page.getByRole('note', { name: 'Aviso de demo local' })).toContainText('Demo local en este navegador');
+  await expect(page.getByRole('note')).toHaveCount(0);
+  await expect(page.locator('.auth-kicker')).toHaveText('Prototipo funcional');
+  await expect(page.locator('body')).not.toContainText(obsoleteDemoCopy);
+  await page.getByRole('button', { name: 'Cotizador público' }).click();
+  await expect(page.getByRole('note')).toContainText('Prototipo funcional. Las solicitudes quedan registradas aquí; el equipo comercial no recibe notificaciones.');
+  await expect(page.locator('body')).not.toContainText(obsoleteDemoCopy);
+  await page.getByRole('button', { name: 'Volver a mi portal' }).last().click();
+  await expect(page.getByRole('heading', { name: 'Bienvenido de vuelta' })).toBeVisible();
   await login(page, 'rodrigo');
+  await expect(page.getByRole('note')).toHaveCount(0);
+  await expect(page.locator('body')).not.toContainText(obsoleteDemoCopy);
+  await go(page, 'avisos', 'Bandeja de avisos');
+  await expect(page.getByText('Prototipo funcional: registra las notificaciones; los envíos externos no están habilitados.', { exact: true })).toBeVisible();
+  await expect(page.locator('body')).not.toContainText(obsoleteDemoCopy);
   expect(failedAssets).toEqual([]);
   expect(apiCalls).toEqual([]);
 });
@@ -55,6 +68,7 @@ test('cinco recorridos en una pestaña con login secuencial, persistencia tras r
   await expect(page.getByRole('heading', { name: 'Hola, Cliente Alfa.' })).toBeVisible();
   await expect(page.locator('.portal-requests')).toContainText('Tus nuevas solicitudes aparecerán en este listado.');
   await page.getByRole('button', { name: 'Nueva solicitud' }).first().click();
+  await expect(page.getByRole('note')).toContainText('Prototipo funcional. Las solicitudes quedan registradas aquí; el equipo comercial no recibe notificaciones.');
   await page.getByLabel('Artículo o desarrollo especial').selectOption('ART-001');
   await page.getByLabel('Cantidad', { exact: true }).fill('2');
   await page.getByLabel('Unidad de venta').selectOption('gruesa');
@@ -63,9 +77,11 @@ test('cinco recorridos en una pestaña con login secuencial, persistencia tras r
   await expect(page.locator('.estimate-values span')).toContainText('4.536');
   await expect(page.locator('.estimate-values small')).toContainText('288 unidades calculadas');
   await page.getByLabel('Teléfono').fill('+54 11 5555 0101');
-  await page.getByRole('checkbox', { name: /Autorizo el uso de estos datos/ }).check();
-  await page.getByRole('button', { name: 'Enviar solicitud' }).click();
-  await expect(page.getByRole('status').filter({ hasText: 'registrada' })).toBeVisible();
+  await page.getByRole('checkbox', { name: /Autorizo el registro de estos datos/ }).check();
+  await page.getByRole('button', { name: 'Registrar solicitud' }).click();
+  const requestStatus = page.getByRole('status').filter({ hasText: 'registrada' });
+  await expect(requestStatus).toBeVisible();
+  await expect(requestStatus).toContainText('No se notificó al equipo comercial.');
   await page.getByRole('button', { name: 'Volver a mi portal', exact: true }).first().click();
   await expect(page.locator('.portal-requests tbody tr')).toHaveCount(1);
   await expect(page.locator('.portal-requests tbody tr')).toContainText('Nueva');
@@ -162,13 +178,15 @@ test('cinco recorridos en una pestaña con login secuencial, persistencia tras r
 
   // Reset local confirmado (perfil technology) vuelve al seed.
   await login(page, 'sergio');
-  await go(page, 'usuarios', 'Usuarios y entorno demo');
-  await page.getByRole('button', { name: 'Solicitar reinicio' }).click();
+  await go(page, 'usuarios', 'Usuarios y accesos');
+  await expect(page.getByRole('heading', { name: 'Prototipo funcional', exact: true })).toBeVisible();
+  await expect(page.locator('body')).not.toContainText(obsoleteDemoCopy);
+  await page.getByRole('button', { name: 'Restablecer datos' }).click();
   const confirm = page.getByRole('dialog');
   await expect(confirm.getByRole('button', { name: 'Confirmar reinicio' })).toBeDisabled();
   await confirm.getByLabel('Escribe exactamente REINICIAR DEMO').fill('REINICIAR DEMO');
   await confirm.getByRole('button', { name: 'Confirmar reinicio' }).click();
-  await expect(page.getByText('Datos de demostración reiniciados.')).toBeVisible();
+  await expect(page.getByText('Datos del prototipo restablecidos.')).toBeVisible();
   await logout(page);
   await login(page, 'cliente');
   await expect(page.locator('.portal-requests')).toContainText('Tus nuevas solicitudes aparecerán en este listado.');
@@ -191,8 +209,8 @@ test('pestañas del mismo navegador comparten datos con roles independientes; ot
   await clientTab.getByLabel('Cantidad', { exact: true }).fill('2');
   await clientTab.getByLabel('Unidad de venta').selectOption('gruesa');
   await clientTab.getByLabel('Teléfono').fill('+54 11 5555 0101');
-  await clientTab.getByRole('checkbox', { name: /Autorizo el uso de estos datos/ }).check();
-  await clientTab.getByRole('button', { name: 'Enviar solicitud' }).click();
+  await clientTab.getByRole('checkbox', { name: /Autorizo el registro de estos datos/ }).check();
+  await clientTab.getByRole('button', { name: 'Registrar solicitud' }).click();
   await expect(clientTab.getByRole('status').filter({ hasText: 'registrada' })).toBeVisible();
 
   // La pestaña manager sigue como manager y ve la solicitud creada en la otra pestaña.

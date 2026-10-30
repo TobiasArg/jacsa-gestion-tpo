@@ -1,9 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { ArrowLeft, ArrowRight, Check, CircleHelp, Clock3, PackageCheck, Radio, Waves } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Clock3, Radio, Waves } from 'lucide-react';
 import { api, ApiError } from './api';
 import { ActionFeedback, Badge, Button, Card, Field, Input, InlineNotice, LogoMark, Select, TextArea } from './components';
 import type { Client, Estimate, PublicArticle, Unit } from './types';
-import { DemoModeNotice, isBrowserDemo } from './browser-mode';
+import { isBrowserDemo } from './browser-mode';
 import { COMPANY_MAX, CUIT_MAX, EMAIL_MAX, hasMarkup, maxQuantityFor, NO_MARKUP_HINT, NOTES_API_MAX, NOTES_USER_MAX, PHONE_MAX, PHONE_MIN } from './limits';
 import { formatCents, unitLabel } from './utils';
 
@@ -156,7 +156,9 @@ export function PublicQuote({ client, onBack, backLabel = 'Volver a mi portal', 
         consent: true,
       });
       const refreshed = onSubmitted ? await onSubmitted() : true;
-      setSuccess(`Solicitud ${result.id} registrada. El equipo comercial podrá continuar la cotización.${refreshed ? '' : ' La actualización de la vista quedó pendiente.'}`);
+      setSuccess(isBrowserDemo
+        ? `Solicitud ${result.id} registrada en el prototipo funcional. No se notificó al equipo comercial.${refreshed ? '' : ' La actualización de la vista quedó pendiente.'}`
+        : `Solicitud ${result.id} registrada. El equipo comercial podrá continuar la cotización.${refreshed ? '' : ' La actualización de la vista quedó pendiente.'}`);
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : 'No se pudo registrar la solicitud. Intenta otra vez.');
     } finally {
@@ -172,21 +174,19 @@ export function PublicQuote({ client, onBack, backLabel = 'Volver a mi portal', 
         {onBack && <button className="public-link" onClick={onBack}><ArrowLeft size={15} /> {backLabel}</button>}
         {!onBack && <a className="public-link" href="#/login">Ingresar <ArrowRight size={15} /></a>}
       </header>
-      {!onBack && <DemoModeNotice />}
-
       <div className="quote-layout">
         <section className="quote-story">
           <div className="story-overline"><span>JACSA / {new Date().getFullYear()}</span><span>01 — 04</span></div>
           <div className="story-motif" aria-hidden="true"><Waves size={54} strokeWidth={.9} /></div>
           <p className="eyebrow">Tu idea, en movimiento</p>
           <h1>Cada proyecto<br />empieza con <em>un hilo.</em></h1>
-          <p className="story-copy">Cuéntanos qué necesitas. Nuestro equipo revisará tu solicitud y preparará una propuesta a medida.</p>
+          <p className="story-copy">{isBrowserDemo ? 'Cuéntanos qué necesitas y consulta una referencia para tu proyecto.' : 'Cuéntanos qué necesitas. Nuestro equipo revisará tu solicitud y preparará una propuesta a medida.'}</p>
           <div className="story-steps">
             <div><span className="step-number">01</span><span><b>Describe</b><small>Elige un artículo o cuéntanos qué imaginas.</small></span><Check size={15} /></div>
             <div><span className="step-number">02</span><span><b>Estimamos</b><small>Consulta una referencia según disponibilidad.</small></span><Clock3 size={15} /></div>
-            <div><span className="step-number">03</span><span><b>Te contactamos</b><small>El equipo comercial da seguimiento.</small></span><Radio size={15} /></div>
+            <div><span className="step-number">03</span><span><b>{isBrowserDemo ? 'Registramos' : 'Te contactamos'}</b><small>{isBrowserDemo ? 'Obtén un número de seguimiento.' : 'El equipo comercial da seguimiento.'}</small></span><Radio size={15} /></div>
           </div>
-          <div className="academic-note"><CircleHelp size={15} /><span>Prototipo académico local. Sin envíos externos ni compromisos comerciales.</span></div>
+          {isBrowserDemo && <div className="prototype-note" role="note">Prototipo funcional. Las solicitudes quedan registradas aquí; el equipo comercial no recibe notificaciones.</div>}
         </section>
 
         <Card className="quote-form-card">
@@ -252,14 +252,13 @@ export function PublicQuote({ client, onBack, backLabel = 'Volver a mi portal', 
               <Field label="Teléfono" htmlFor="phone"><Input id="phone" type="tel" autoComplete="tel" minLength={PHONE_MIN} maxLength={PHONE_MAX} value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="Código de área y número" required /></Field>
             </div>
             {!needsManualQuote && <Field label="Detalle adicional (opcional)" htmlFor="notes" hint={`${notes.length}/${NOTES_USER_MAX} caracteres. ${NO_MARKUP_HINT}`}><TextArea id="notes" rows={2} maxLength={NOTES_USER_MAX} value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Medidas, uso previsto, tiempos u otra referencia" /></Field>}
-            <label className="consent-check"><input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} required /><span>Autorizo el uso de estos datos para dar seguimiento a esta solicitud.</span></label>
+            <label className="consent-check"><input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} required /><span>{isBrowserDemo ? 'Autorizo el registro de estos datos para la solicitud.' : 'Autorizo el uso de estos datos para dar seguimiento a esta solicitud.'}</span></label>
             <ActionFeedback error={error} success={success} />
-            <Button type="submit" className="submit-request" disabled={busy || !consent || catalogLoading || !selection || !configurationValid || !quantityValid}>{busy ? 'Registrando solicitud…' : 'Enviar solicitud'}<ArrowRight size={17} /></Button>
-            <p className="privacy-footnote"><PackageCheck size={14} /> Tus datos quedan en la demostración local; no se envía correo.</p>
+            <Button type="submit" className="submit-request" disabled={busy || !consent || catalogLoading || !selection || !configurationValid || !quantityValid}>{busy ? 'Registrando solicitud…' : isBrowserDemo ? 'Registrar solicitud' : 'Enviar solicitud'}<ArrowRight size={17} /></Button>
           </form>
         </Card>
       </div>
-      <footer className="public-footer"><span>JACSA · CORDONERÍA INDUSTRIAL</span><span>{isBrowserDemo ? 'Demo local · datos solo en este navegador' : 'Prototipo local para demostración académica'}</span></footer>
+      <footer className="public-footer"><span>JACSA · CORDONERÍA INDUSTRIAL</span><span>PRODUCCIÓN · SEGUIMIENTO</span></footer>
     </div>
   );
 }
