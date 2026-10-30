@@ -2,19 +2,22 @@
 // Captura reproducible del video mudo de JACSA Gestión sobre el build estático browser-demo.
 //
 // Recorre C0 → C4 en UN contexto de Chromium headless nuevo (sin storageState, sin perfil del usuario), una pestaña por
-// rol, y arma cada clip cuadro a cuadro: cada estado de la UI se fotografía con Playwright y se sostiene el número exacto
-// de frames del storyboard (documentacion/plan-produccion-video-60s.md §6). El reloj del video es virtual, así que la
-// duración no depende de la velocidad de la máquina: 5 clips × 1800 frames y un continuo de 9000 frames, 30 fps CFR.
+// rol, y graba la pantalla de cada pestaña con context.recordVideo (WebM continuo de 1920 × 1080 a 30 fps). Las acciones
+// se agendan por reloj real según el storyboard (documentacion/plan-produccion-video-60s.md §6): el puntero se desplaza,
+// se tipea y se hace scroll a velocidad normal. Después ffmpeg recorta cada tramo de la toma, intercala las tarjetas PNG
+// de título y cierre, completa con el último frame si hace falta y codifica H.264 con 1800 frames exactos por clip; el
+// continuo de 9000 frames se une sin recodificar.
 //
 // Uso (desde prototipo/):
 //   JACSA_FFMPEG=/ruta/absoluta/ffmpeg node scripts/video/record-demo-video.mjs [--work DIR] [--out DIR]
-//     [--skip-build] [--sin-puntero] [--capture-only] [--verify-only]
+//     [--skip-build] [--sin-puntero] [--capture-only] [--verify-only] [--sample]
 //
+// --sample graba solo una toma de prueba de 10 s (WebM + MP4 1080p en --work) para revisar fluidez y legibilidad.
 // Salidas: ../entregables/videos/jacsa-60s-{1..5}-*.mp4, jacsa-300s-continuo.mp4, SHA256SUMS y verificacion-video.txt.
-// Los intermedios (PNG, marcas.json, logs) quedan en --work, fuera del repositorio.
+// Los intermedios (WebM, tarjetas, marcas.json) quedan en --work, fuera del repositorio.
 import { createHash } from 'node:crypto';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { copyFileSync, createReadStream, existsSync, linkSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { copyFileSync, createReadStream, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { dirname, extname, join, resolve, sep } from 'node:path';
@@ -70,6 +73,7 @@ const X264 = ['-c:v', 'libx264', '-preset', 'slow', '-crf', '18', '-profile:v', 
 const log = (...parts) => console.log(`[video ${new Date().toISOString().slice(11, 19)}]`, ...parts);
 const sha256 = (file) => createHash('sha256').update(readFileSync(file)).digest('hex');
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
+const ease = (p) => (p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2);
 
 // ───────────────────────── Servidor estático aislado (solo dist/, sin proxy /api) ─────────────────────────
 
@@ -87,96 +91,99 @@ function serveDist(dist) {
   return new Promise((done) => server.listen(0, '127.0.0.1', () => done(server)));
 }
 
-// ───────────────────────── Línea de tiempo cuadro a cuadro ─────────────────────────
+// ───────────────────────── Línea de tiempo: tarjetas + tramos grabados en tiempo real ─────────────────────────
 
 class Clip {
-  constructor(def, shotsDir) { Object.assign(this, def); this.shotsDir = shotsDir; this.frames = []; this.beats = []; this.segments = []; this.last = null; }
-  get t() { return this.frames.length / FPS; }
-  push(png, count) { for (let i = 0; i < count; i += 1) this.frames.push(png); }
-  hold(seconds) { this.push(this.last, Math.round(seconds * FPS)); }
-  card(png, seconds) { this.last = png; this.hold(seconds); }
-  // Sostiene el último cuadro hasta el instante t del storyboard; si ya se pasó por más de la tolerancia, la toma no sirve.
-  until(t, id) {
-    const target = Math.round(t * FPS);
-    const late = (this.frames.length - target) / FPS;
+  constructor(def) { Object.assign(this, def); this.parts = []; this.beats = []; this.segment = null; }
+  card(png, seconds) { this.parts.push({ kind: 'card', png, frames: Math.round(seconds * FPS) }); }
+  // Abre un tramo de la toma de una pestaña: el instante local `startS` del clip corresponde a ahora (Date.now()).
+  open(tab, route, startS, endS) { this.segment = { tab, route, startS, endS, inMs: Date.now() }; }
+  get t() { return this.segment.startS + (Date.now() - this.segment.inMs) / 1000; }
+  // Espera por reloj real hasta el instante t del storyboard; si ya se pasó por más de la tolerancia, la toma no sirve.
+  async until(t, id) {
+    const late = this.t - t;
     if (late > LATE_TOLERANCE_S) throw new Error(`clip ${this.id}: beat «${id ?? t}» llega ${late.toFixed(2)} s tarde`);
-    if (this.frames.length < target) this.push(this.last, target - this.frames.length);
+    if (late < 0) await sleep(-late * 1000);
     if (id) this.beats.push({ id, planS: t, realS: Number(this.t.toFixed(3)) });
+  }
+  close() {
+    const segment = { ...this.segment, outMs: Date.now(), frames: Math.round((this.segment.endS - this.segment.startS) * FPS) };
+    this.parts.push({ kind: 'video', ...segment });
+    this.segment = null;
+    return segment;
   }
 }
 
 class Director {
-  constructor(clip, page, tab, pointer) { this.clip = clip; this.page = page; this.tab = tab; this.pointer = pointer; }
-  async shot(frames = 1) {
-    const png = join(this.clip.shotsDir, `c${this.clip.id}-${String(++Director.count).padStart(5, '0')}.png`);
-    await this.page.screenshot({ path: png, type: 'png' });
-    this.clip.last = png;
-    this.clip.push(png, frames);
-    return png;
-  }
+  constructor(clip, page, pointer, mouse) { this.clip = clip; this.page = page; this.pointer = pointer; this.mouse = mouse; }
   async settle(locator) {
     if (locator) await expect(locator).toBeVisible({ timeout: 10_000 });
-    await this.page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
-    await sleep(250);
+    await sleep(300);
   }
-  async pointAt(locator) {
-    await locator.scrollIntoViewIfNeeded();
-    if (!this.pointer) return;
-    const box = await locator.boundingBox();
-    if (!box) throw new Error(`clip ${this.clip.id}: elemento sin caja visible`);
-    await this.page.evaluate(([x, y]) => window.__videoPointer?.(x, y, false), [box.x + box.width / 2, box.y + box.height / 2]);
+  // Mueve el mouse real de Playwright en ~0,4 s, un evento por frame: el indicador de puntero se ve desplazarse.
+  async glide(x, y, seconds = 0.4) {
+    const steps = Math.max(1, Math.round(seconds * FPS));
+    const from = { ...this.mouse };
+    for (let step = 1; step <= steps; step += 1) {
+      const eased = ease(step / steps);
+      await this.page.mouse.move(from.x + (x - from.x) * eased, from.y + (y - from.y) * eased);
+      await sleep(1000 / FPS);
+    }
+    Object.assign(this.mouse, { x, y });
+  }
+  // Si el control no está a la vista, scroll suave hasta él (nunca el salto instantáneo de Playwright).
+  async reveal(locator) {
+    const visible = await locator.evaluate((element) => {
+      const box = element.getBoundingClientRect();
+      return box.top >= 80 && box.bottom <= innerHeight - 60;
+    });
+    if (!visible) await this.scrollTo(locator, { seconds: 0.8, offset: 220 });
   }
   // Puntero sobre el control y 0,5 s de quietud antes de actuar (plan §6.1).
-  async aim(locator) { await this.pointAt(locator); await this.shot(Math.round(0.5 * FPS)); }
-  async click(locator, waitFor) {
-    await this.aim(locator);
-    if (this.pointer) await this.page.evaluate(() => window.__videoPointer?.(null, null, true));
-    await locator.click();
-    await this.settle(waitFor);
-    if (this.pointer) await this.page.evaluate(() => window.__videoPointer?.(null, null, false));
-    await this.shot();
+  async aim(locator) {
+    await this.reveal(locator);
+    const box = await locator.boundingBox();
+    if (!box) throw new Error(`clip ${this.clip.id}: elemento sin caja visible`);
+    await this.glide(box.x + box.width / 2, box.y + box.height / 2);
+    await sleep(500);
   }
-  async select(locator, value) { await this.aim(locator); await locator.selectOption(value); await this.settle(); await this.shot(); }
-  async check(locator) { await this.aim(locator); await locator.check(); await this.settle(); await this.shot(); }
-  // Tipeo visible: un cuadro por tecla sostenido 4 frames (≈133 ms), como pressSequentially del plan.
+  async click(locator, waitFor) { await this.aim(locator); await locator.click(); await this.settle(waitFor); }
+  async select(locator, value) { await this.aim(locator); await locator.selectOption(value); await this.settle(); }
+  async check(locator) { await this.aim(locator); await locator.check(); await this.settle(); }
+  // Tipeo visible a ~120 ms por tecla (pressSequentially del plan).
   async type(locator, text) {
     await this.aim(locator);
+    await locator.click();
     await locator.fill('');
-    for (const char of text) { await locator.pressSequentially(char); await this.shot(4); }
+    await locator.pressSequentially(text, { delay: 120 });
     await this.settle();
   }
-  // Scroll suave del contenedor real del elemento (ventana o diálogo): un cuadro cada 2 frames con easing.
+  // Scroll suave en tiempo real (requestAnimationFrame con easing) del contenedor real del elemento: ventana o diálogo.
   async scrollTo(locator, { seconds = 1, offset = 110 } = {}) {
-    const plan = await locator.evaluate((element, top) => {
+    await locator.evaluate((element, [top, ms]) => new Promise((done) => {
       let scroller = element.parentElement;
       while (scroller && !(/(auto|scroll)/.test(getComputedStyle(scroller).overflowY) && scroller.scrollHeight > scroller.clientHeight)) scroller = scroller.parentElement;
-      const isWindow = !scroller;
-      const from = isWindow ? window.scrollY : scroller.scrollTop;
-      const max = isWindow ? document.documentElement.scrollHeight - innerHeight : scroller.scrollHeight - scroller.clientHeight;
-      const frameTop = isWindow ? 0 : scroller.getBoundingClientRect().top;
-      const to = Math.max(0, Math.min(max, from + element.getBoundingClientRect().top - frameTop - top));
-      return { from, to };
-    }, offset);
-    const steps = Math.max(1, Math.round((seconds * FPS) / 2));
-    // El puntero queda oculto durante el scroll: su última posición ya no apunta a nada.
-    if (this.pointer) await this.page.evaluate(() => window.__videoPointer?.hide());
-    if (Math.abs(plan.to - plan.from) < 2) { await this.shot(); return; }
-    for (let step = 1; step <= steps; step += 1) {
-      const progress = step / steps;
-      const eased = progress < 0.5 ? 2 * progress * progress : 1 - (-2 * progress + 2) ** 2 / 2;
-      await locator.evaluate((element, y) => {
-        let scroller = element.parentElement;
-        while (scroller && !(/(auto|scroll)/.test(getComputedStyle(scroller).overflowY) && scroller.scrollHeight > scroller.clientHeight)) scroller = scroller.parentElement;
-        (scroller ?? document.documentElement).scrollTo({ top: y, behavior: 'instant' });
-      }, plan.from + (plan.to - plan.from) * eased);
-      await this.shot(2);
-    }
+      const target = scroller ?? document.scrollingElement;
+      const frameTop = scroller ? scroller.getBoundingClientRect().top : 0;
+      const from = target.scrollTop;
+      const to = Math.max(0, Math.min(target.scrollHeight - target.clientHeight, from + element.getBoundingClientRect().top - frameTop - top));
+      if (Math.abs(to - from) < 2) { done(); return; }
+      const start = performance.now();
+      const step = (now) => {
+        const progress = Math.min(1, (now - start) / ms);
+        const eased = progress < 0.5 ? 2 * progress * progress : 1 - (-2 * progress + 2) ** 2 / 2;
+        target.scrollTo({ top: from + (to - from) * eased, behavior: 'instant' });
+        if (progress < 1) requestAnimationFrame(step); else done();
+      };
+      requestAnimationFrame(step);
+    }), [offset, seconds * 1000]);
+    await sleep(150);
   }
   async scrollTop() { await this.page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' })); }
 }
-Director.count = 0;
 
-// Indicador de puntero (círculo semitransparente, pointer-events: none). No agrega texto ni cambia el layout.
+// Indicador de puntero (círculo semitransparente, pointer-events: none) que sigue al mouse real de Playwright.
+// No agrega texto ni cambia el layout de la app.
 const pointerScript = () => {
   const install = () => {
     if (document.getElementById('__video-pointer')) return;
@@ -185,15 +192,11 @@ const pointerScript = () => {
     dot.setAttribute('aria-hidden', 'true');
     Object.assign(dot.style, { position: 'fixed', left: '0', top: '0', width: '34px', height: '34px', margin: '-17px 0 0 -17px', borderRadius: '50%',
       border: '3px solid rgba(15, 94, 91, .9)', background: 'rgba(20, 120, 115, .22)', boxShadow: '0 0 0 4px rgba(255, 255, 255, .55)',
-      pointerEvents: 'none', zIndex: '2147483647', opacity: '0', transition: 'none' });
+      pointerEvents: 'none', zIndex: '2147483647', opacity: '0', transition: 'scale 90ms ease-out' });
     document.documentElement.appendChild(dot);
-    let last = [0, 0];
-    const move = (x, y, pressed) => {
-      if (x !== null) last = [x, y];
-      Object.assign(dot.style, { opacity: '1', transform: `translate(${last[0]}px, ${last[1]}px) scale(${pressed ? 0.75 : 1})` });
-    };
-    move.hide = () => { dot.style.opacity = '0'; };
-    window.__videoPointer = move;
+    addEventListener('mousemove', (event) => Object.assign(dot.style, { opacity: '1', transform: `translate(${event.clientX}px, ${event.clientY}px)` }), true);
+    addEventListener('mousedown', () => { dot.style.scale = '0.75'; }, true);
+    addEventListener('mouseup', () => { dot.style.scale = '1'; }, true);
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install); else install();
 };
@@ -217,12 +220,13 @@ async function login(page, username) {
 }
 
 // Fuera de cámara: pestaña al frente, ruta de entrada recargada (sincroniza con lo que hicieron otras pestañas) y scroll arriba.
-async function enter(page, route, heading) {
+async function enter(page, route, heading, mouse) {
   await page.bringToFront();
   await page.goto(`/#/${route}`);
   await page.reload();
   await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible();
   await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+  if (mouse) await page.mouse.move(mouse.x, mouse.y);
   await sleep(1000);
 }
 
@@ -235,37 +239,34 @@ async function clip1(d) {
   await assertCleanCopy(page, 'clip 1 entrada');
   await expect(page.getByRole('heading', { name: 'Hola, Cliente Alfa.' })).toBeVisible();
   await expect(page.locator('.portal-requests')).toContainText('Tus nuevas solicitudes aparecerán en este listado.');
-  await d.shot();
-  clip.until(7, 'nueva-solicitud');
+  await clip.until(7, 'nueva-solicitud');
   await d.click(page.getByRole('button', { name: 'Nueva solicitud' }).first(), page.getByRole('note'));
   await expect(page.getByRole('note')).toContainText('Prototipo funcional. Las solicitudes quedan registradas aquí; el equipo comercial no recibe notificaciones.');
-  clip.until(9, 'articulo');
+  await clip.until(9, 'articulo');
   const article = page.getByLabel('Artículo o desarrollo especial');
   await d.select(article, 'ART-001');
   expect(await article.locator('option:checked').innerText()).toContain('ART-001');
-  clip.until(14, 'cantidad');
+  await clip.until(14, 'cantidad');
   await d.type(page.getByLabel('Cantidad', { exact: true }), '2');
   await d.select(page.getByLabel('Unidad de venta'), 'gruesa');
   await expect(page.locator('.estimate-values strong')).toContainText('26.136');
-  clip.until(19, 'vista-previa');
+  await clip.until(19, 'vista-previa');
   await d.scrollTo(page.locator('.estimate-heading'), { offset: 140 });
   await expect(page.locator('.estimate-values span')).toContainText('21.600');
   await expect(page.locator('.estimate-values span')).toContainText('4.536');
   await expect(page.locator('.estimate-values small')).toContainText('288 unidades calculadas');
-  await d.shot();
-  clip.until(29, 'contacto');
+  await clip.until(29, 'contacto');
   await d.scrollTo(page.getByRole('heading', { name: 'Tus datos de contacto' }), { offset: 120 });
   await d.type(page.getByLabel('Teléfono'), '+54 11 5555 0101');
   await d.check(page.getByRole('checkbox', { name: /Autorizo el registro de estos datos para la solicitud\./ }));
-  clip.until(38, 'registrar-solicitud');
+  await clip.until(38, 'registrar-solicitud');
   const status = page.getByRole('status').filter({ hasText: 'registrada' });
   await d.click(page.getByRole('button', { name: 'Registrar solicitud' }), status);
   await expect(status).toContainText('No se notificó al equipo comercial.');
-  await status.scrollIntoViewIfNeeded();
-  await d.shot();
-  clip.until(44, 'volver-portal');
+  await d.reveal(status);
+  await clip.until(44, 'volver-portal');
   await d.click(page.getByRole('button', { name: 'Volver a mi portal', exact: true }).first(), page.getByRole('heading', { name: 'Hola, Cliente Alfa.' }));
-  clip.until(48, 'solicitudes-enviadas');
+  await clip.until(48, 'solicitudes-enviadas');
   await d.scrollTo(page.getByRole('heading', { name: 'Solicitudes enviadas' }), { offset: 160 });
   const row = page.locator('.portal-requests tbody tr');
   await expect(row).toHaveCount(1);
@@ -276,34 +277,32 @@ async function clip2(d) {
   const { page, clip } = d;
   const prepare = page.getByRole('button', { name: 'Preparar cotización' });
   await expect(prepare).toBeVisible();
-  await d.shot();
-  clip.until(8, 'preparar-cotizacion');
+  await clip.until(8, 'preparar-cotizacion');
   await d.click(prepare, page.getByRole('heading', { name: 'Cotizaciones', exact: true }));
-  clip.until(10, 'recargo-vigencia');
+  await clip.until(10, 'recargo-vigencia');
   for (const [label, value] of [['Recargo sobre costo (%)', '25'], ['Vigencia (días)', '7']]) {
     const input = page.getByLabel(label);
     if (await input.inputValue() !== value) await d.type(input, value); else await d.aim(input);
   }
-  clip.until(16, 'crear-cotizacion');
+  await clip.until(16, 'crear-cotizacion');
   const quoteCard = page.locator('.quote-record').filter({ hasText: 'Cordón industrial' }).filter({ hasText: 'Cliente Alfa' });
   await d.click(page.getByRole('button', { name: 'Crear cotización' }), quoteCard);
   for (const amount of ['26.136', '21.600', '4.536']) await expect(quoteCard).toContainText(amount);
   await d.scrollTo(quoteCard, { offset: 120 });
-  clip.until(24, 'enviar-propuesta');
+  await clip.until(24, 'enviar-propuesta');
   await d.click(quoteCard.getByRole('button', { name: 'Enviar propuesta' }), quoteCard.getByText('Enviada', { exact: true }));
-  clip.until(28, 'registrar-aceptacion');
+  await clip.until(28, 'registrar-aceptacion');
   await d.click(quoteCard.getByRole('button', { name: 'Registrar aceptación' }), quoteCard.getByText('Aceptada', { exact: true }));
-  clip.until(32, 'convertir-pedido');
+  await clip.until(32, 'convertir-pedido');
   await d.click(quoteCard.getByRole('button', { name: 'Convertir en pedido' }), page.getByText('Pedido creado; la reserva se actualizó en el inventario.'));
-  clip.until(37, 'nav-pedidos');
+  await clip.until(37, 'nav-pedidos');
   await d.click(page.locator('.nav-item:visible').filter({ hasText: /^Pedidos$/ }).first(), page.getByRole('heading', { name: 'Pedidos', exact: true }));
   await d.scrollTop();
   await expect(cordon(page)).toContainText('Faltante de material');
-  await d.shot();
-  clip.until(40, 'ver-orden');
+  await clip.until(40, 'ver-orden');
   const dialog = page.getByRole('dialog');
   await d.click(cordon(page).getByRole('button', { name: /^Ver orden / }), dialog);
-  clip.until(43, 'requerimientos');
+  await clip.until(43, 'requerimientos');
   const negro = dialog.locator('.requirement-row').filter({ hasText: 'Hilado negro' });
   const alma = dialog.locator('.requirement-row').filter({ hasText: 'Alma negra' });
   await expect(negro).toContainText('Reservado 400 g');
@@ -316,31 +315,29 @@ async function clip2(d) {
 async function clip3a(d) {
   const { page, clip } = d;
   await expect(page.getByText('264 g de faltante', { exact: true })).toBeVisible();
-  await d.shot();
   const receipts = [[8, 'INS-NEGRO', '200', 'Recepción hilado negro'], [20, 'INS-ALMA', '100', 'Recepción alma negra']];
   for (const [t, material, grams, memo] of receipts) {
-    clip.until(t, `ingreso-${material}`);
+    await clip.until(t, `ingreso-${material}`);
     await d.select(page.getByLabel('Material'), material);
     await d.type(page.getByLabel('Cantidad recibida (gramos)'), grams);
     await d.type(page.getByLabel('Memo del movimiento'), memo);
     await d.click(page.getByRole('button', { name: 'Registrar ingreso' }), page.getByText('Ingreso registrado y reservas pendientes recalculadas.'));
   }
   await expect(page.getByText('Disponibilidad cubierta', { exact: true })).toBeVisible();
-  clip.until(31, 'movimientos');
+  await clip.until(31, 'movimientos');
   await d.scrollTo(page.getByRole('heading', { name: 'Movimientos recientes' }), { offset: 120 });
 }
 
 async function clip3b(d) {
   const { page, clip } = d;
   await expect(cordon(page)).toContainText('Reserva completa');
-  await d.shot();
-  clip.until(43, 'ver-orden');
+  await clip.until(43, 'ver-orden');
   const dialog = page.getByRole('dialog');
   await d.click(cordon(page).getByRole('button', { name: /^Ver orden / }), dialog);
-  clip.until(45, 'maquina-prioridad');
+  await clip.until(45, 'maquina-prioridad');
   await d.select(dialog.getByLabel('Máquina'), 'M-04');
   await d.type(dialog.getByLabel('Prioridad (1 = más urgente)', { exact: true }), '1');
-  clip.until(51, 'guardar-plan');
+  await clip.until(51, 'guardar-plan');
   await d.click(dialog.getByRole('button', { name: 'Guardar plan' }), dialog.getByText('Máquina y prioridad asignadas.'));
 }
 
@@ -348,22 +345,21 @@ async function clip4(d) {
   const { page, clip } = d;
   await expect(cordon(page)).toContainText('Reserva completa');
   await expect(page.locator('h2, h3').filter({ hasText: 'Máquina 04' }).first()).toBeVisible();
-  await d.shot();
-  clip.until(12, 'ver-orden');
+  await clip.until(12, 'ver-orden');
   const dialog = page.getByRole('dialog');
   await d.click(cordon(page).getByRole('button', { name: /^Ver orden / }), dialog);
   await expect(dialog).toContainText('Reserva suficiente');
   await expect(dialog).toContainText('Máquina asignada y libre');
-  clip.until(15, 'iniciar-produccion');
+  await clip.until(15, 'iniciar-produccion');
   await d.click(dialog.getByRole('button', { name: 'Iniciar producción' }), dialog.getByText('Producción iniciada con la reserva de materiales validada.'));
-  clip.until(21, 'unidades');
+  await clip.until(21, 'unidades');
   await d.type(dialog.getByLabel('Unidades acumuladas · 288 total'), '288');
-  clip.until(28, 'control-calidad');
+  await clip.until(28, 'control-calidad');
   await d.check(dialog.getByRole('checkbox', { name: /Control de calidad aprobado/ }));
-  clip.until(32, 'guardar-avance');
+  await clip.until(32, 'guardar-avance');
   await d.click(dialog.getByRole('button', { name: 'Guardar avance' }), dialog.getByText('Listo', { exact: true }));
   await expect(dialog.getByText('Producción completa y control de calidad registrado.')).toBeVisible();
-  clip.until(48, 'consumo');
+  await clip.until(48, 'consumo');
   await expect(dialog.locator('.requirements-list')).toContainText('Consumido 576 g');
   await expect(dialog.locator('.requirements-list')).toContainText('Consumido 288 g');
   await d.scrollTo(dialog.getByRole('heading', { name: 'Requerimientos de material' }), { offset: 40 });
@@ -372,13 +368,12 @@ async function clip4(d) {
 async function clip5(d) {
   const { page, clip } = d;
   await expect(page.getByRole('heading', { name: 'Hola, Cliente Alfa.' })).toBeVisible();
-  await d.shot();
-  clip.until(10, 'mis-pedidos');
+  await clip.until(10, 'mis-pedidos');
   const order = page.locator('.portal-order-row').filter({ hasText: 'Cordón industrial' }).filter({ hasText: '288 / 288 unidades' });
   await expect(order).toContainText('Listo');
   await expect(order).toContainText('Calidad verificada');
   await d.scrollTo(page.getByRole('heading', { name: 'Mis pedidos' }), { seconds: 1.5, offset: 140 });
-  clip.until(24, 'mis-avisos');
+  await clip.until(24, 'mis-avisos');
   for (const event of ['Cotización enviada', 'En producción', 'Listo']) {
     await expect(page.locator('.portal-notice-row').filter({ hasText: event }).first()).toContainText('Registrada');
   }
@@ -411,8 +406,8 @@ async function renderCards(browser, dir) {
   return files;
 }
 
-async function capture() {
-  for (const sub of ['shots', 'cards', 'seq', 'stage', 'qc']) mkdirSync(join(WORK, sub), { recursive: true });
+async function capture({ sample = false } = {}) {
+  for (const sub of ['raw', 'cards', 'stage']) mkdirSync(join(WORK, sub), { recursive: true });
   const commit = execFileSync('git', ['-C', REPO, 'rev-parse', '--short', 'HEAD'], { encoding: 'utf8' }).trim();
   const dist = join(PROTO, 'dist');
   if (!flag('--skip-build')) {
@@ -426,17 +421,18 @@ async function capture() {
 
   const browser = await chromium.launch({ headless: true });
   try {
-    return await record(browser, baseURL, commit);
+    return await record(browser, baseURL, commit, sample);
   } finally {
     await browser.close();
     server.close();
   }
 }
 
-async function record(browser, baseURL, commit) {
+async function record(browser, baseURL, commit, sample) {
   const cards = await renderCards(browser, join(WORK, 'cards'));
-  // Un único contexto nuevo: almacenamiento vacío, sin perfil ni cookies del usuario.
-  const context = await browser.newContext({ baseURL, viewport: VIEWPORT, deviceScaleFactor: 1, locale: 'es-AR', timezoneId: 'America/Argentina/Buenos_Aires', colorScheme: 'light' });
+  // Un único contexto nuevo: almacenamiento vacío, sin perfil ni cookies del usuario. Graba un WebM continuo por pestaña.
+  const context = await browser.newContext({ baseURL, viewport: VIEWPORT, deviceScaleFactor: 1, locale: 'es-AR', timezoneId: 'America/Argentina/Buenos_Aires',
+    colorScheme: 'light', recordVideo: { dir: join(WORK, 'raw'), size: VIEWPORT, fps: FPS } });
   const apiCalls = [];
   const externalCalls = [];
   await context.route(() => true, (route) => {
@@ -447,94 +443,122 @@ async function record(browser, baseURL, commit) {
   });
   if (POINTER) await context.addInitScript(pointerScript);
 
+  // t0 de cada pestaña: Playwright fecha cada frame del WebM como (timestamp del screencast − creación del grabador), y el
+  // grabador nace con la pestaña; por eso el segundo s del WebM corresponde a t0 + s (Date.now()).
+  const roles = sample ? ['cliente'] : ['cliente', 'rodrigo', 'lorena', 'operario'];
   const tabs = {};
-  for (const role of ['cliente', 'rodrigo', 'lorena', 'operario']) tabs[role] = await context.newPage();
+  const t0 = {};
+  const mice = {};
+  for (const role of roles) { tabs[role] = await context.newPage(); t0[role] = Date.now(); mice[role] = { x: 960, y: 620 }; }
   await tabs.cliente.goto('/#/login');
   const storedBeforeLogin = await tabs.cliente.evaluate(() => Object.keys(localStorage).filter((key) => key.startsWith('jacsa-demo:')));
   await expect(tabs.cliente.getByRole('heading', { name: 'Bienvenido de vuelta' })).toBeVisible();
   await assertCleanCopy(tabs.cliente, 'login');
   for (const [role, page] of Object.entries(tabs)) await login(page, role);
 
-  const shotsDir = join(WORK, 'shots');
-  const clips = CLIPS.map((def) => new Clip(def, shotsDir));
-  const scene = async (clip, role, route, heading, start, run) => {
+  const scene = async (clip, role, route, heading, startS, endS, run) => {
     const page = tabs[role];
-    await enter(page, route, heading);
+    await enter(page, route, heading, mice[role]);
     await assertCleanCopy(page, `clip ${clip.id} ${role}`);
-    clip.until(start);
-    const segment = { tab: role, route, inFrame: clip.frames.length };
-    const director = new Director(clip, page, role, POINTER);
-    await run(director);
-    segment.outFrame = clip.frames.length;
-    clip.segments.push(segment);
+    clip.open(role, route, startS, endS);
+    await run(new Director(clip, page, POINTER, mice[role]));
+    await clip.until(endS - 2, 'quieto-salida');
     await assertCleanCopy(page, `clip ${clip.id} ${role} salida`);
-    return director;
+    await clip.until(endS);
+    clip.close();
   };
   const closeDialog = async (page) => { await page.getByRole('dialog').getByRole('button', { name: 'Cerrar', exact: true }).click(); };
 
-  const [c1, c2, c3, c4, c5] = clips;
-  log('clip 1');
-  c1.card(cards.c1, 3);
-  await scene(c1, 'cliente', 'portal', 'Hola, Cliente Alfa.', 3, clip1);
-  c1.until(58, 'quieto-salida');
-  c1.hold(2);
-  log('clip 2');
-  c2.card(cards.c2, 3);
-  await scene(c2, 'rodrigo', 'dashboard', 'Buen día, Rodrigo.', 3, clip2);
-  c2.until(58, 'quieto-salida');
-  c2.hold(2);
-  await closeDialog(tabs.rodrigo);
-  log('clip 3');
-  c3.card(cards.c3, 3);
-  await scene(c3, 'lorena', 'stock', 'Stock e insumos', 3, clip3a);
-  c3.until(39, 'corte-rodrigo');
-  c3.card(cards['c3-corte'], 1);
-  await scene(c3, 'rodrigo', 'pedidos', 'Pedidos', 40, clip3b);
-  c3.until(58, 'quieto-salida');
-  c3.hold(2);
-  await closeDialog(tabs.rodrigo);
-  log('clip 4');
-  c4.card(cards.c4, 3);
-  await scene(c4, 'operario', 'cola', 'Cola de producción', 3, clip4);
-  c4.until(58, 'quieto-salida');
-  c4.hold(2);
-  await closeDialog(tabs.operario);
-  log('clip 5');
-  c5.card(cards.c5, 3);
-  await scene(c5, 'cliente', 'portal', 'Hola, Cliente Alfa.', 3, clip5);
-  c5.until(54, 'cierre');
-  c5.card(cards['c5-cierre'], 6);
+  let clips;
+  let storedAfter = [];
+  if (sample) {
+    // Toma de prueba de 10 s: mouse, clic, selección, tipeo y scroll suave en el cotizador.
+    const clip = new Clip({ id: 'sample', file: 'sample-10s.mp4' });
+    await scene(clip, 'cliente', 'portal', 'Hola, Cliente Alfa.', 0, 12, async (d) => {
+      const { page } = d;
+      await clip.until(1.5, 'nueva-solicitud');
+      await d.click(page.getByRole('button', { name: 'Nueva solicitud' }).first(), page.getByRole('note'));
+      await clip.until(3.5, 'articulo');
+      await d.select(page.getByLabel('Artículo o desarrollo especial'), 'ART-001');
+      await d.type(page.getByLabel('Cantidad', { exact: true }), '2');
+      await d.select(page.getByLabel('Unidad de venta'), 'gruesa');
+      await clip.until(7.5, 'vista-previa');
+      await d.scrollTo(page.locator('.estimate-heading'), { seconds: 1.5, offset: 140 });
+      await expect(page.locator('.estimate-values strong')).toContainText('26.136');
+    });
+    clip.parts[0].frames = 10 * FPS;
+    clips = [clip];
+  } else {
+    clips = CLIPS.map((def) => new Clip(def));
+    const [c1, c2, c3, c4, c5] = clips;
+    log('clip 1');
+    c1.card(cards.c1, 3);
+    await scene(c1, 'cliente', 'portal', 'Hola, Cliente Alfa.', 3, 60, clip1);
+    log('clip 2');
+    c2.card(cards.c2, 3);
+    await scene(c2, 'rodrigo', 'dashboard', 'Buen día, Rodrigo.', 3, 60, clip2);
+    await closeDialog(tabs.rodrigo);
+    log('clip 3');
+    c3.card(cards.c3, 3);
+    await scene(c3, 'lorena', 'stock', 'Stock e insumos', 3, 39, clip3a);
+    c3.card(cards['c3-corte'], 1);
+    await scene(c3, 'rodrigo', 'pedidos', 'Pedidos', 40, 60, clip3b);
+    await closeDialog(tabs.rodrigo);
+    log('clip 4');
+    c4.card(cards.c4, 3);
+    await scene(c4, 'operario', 'cola', 'Cola de producción', 3, 60, clip4);
+    await closeDialog(tabs.operario);
+    log('clip 5');
+    c5.card(cards.c5, 3);
+    await scene(c5, 'cliente', 'portal', 'Hola, Cliente Alfa.', 3, 54, clip5);
+    c5.card(cards['c5-cierre'], 6);
 
-  // Saldo C4 (no se locuta ni se filma en B4): se verifica en Stock con la pestaña de Lorena.
-  await enter(tabs.lorena, 'stock', 'Stock e insumos');
-  await expect(tabs.lorena.getByRole('row').filter({ hasText: 'Hilado negro' }).first()).toContainText('24 g');
-  await expect(tabs.lorena.getByRole('row').filter({ hasText: 'Alma negra' }).first()).toContainText('12 g');
-  const storedAfter = await tabs.cliente.evaluate(() => Object.keys(localStorage).filter((key) => key.startsWith('jacsa-demo:')));
+    // Saldo C4 (no se locuta ni se filma en B4): se verifica en Stock con la pestaña de Lorena, después del último tramo.
+    await enter(tabs.lorena, 'stock', 'Stock e insumos');
+    await expect(tabs.lorena.getByRole('row').filter({ hasText: 'Hilado negro' }).first()).toContainText('24 g');
+    await expect(tabs.lorena.getByRole('row').filter({ hasText: 'Alma negra' }).first()).toContainText('12 g');
+    storedAfter = await tabs.cliente.evaluate(() => Object.keys(localStorage).filter((key) => key.startsWith('jacsa-demo:')));
+  }
 
+  const videos = Object.fromEntries(Object.entries(tabs).map(([role, page]) => [role, page.video()]));
+  const closeMs = Date.now();
   await context.close();
 
-  for (const clip of clips) if (clip.frames.length !== CLIP_FRAMES) throw new Error(`clip ${clip.id}: ${clip.frames.length} frames (esperado ${CLIP_FRAMES})`);
   if (storedBeforeLogin.length) throw new Error(`C0: localStorage ya tenía ${storedBeforeLogin.join(', ')}`);
   if (apiCalls.length) throw new Error(`llamadas /api/ bloqueadas: ${apiCalls.join(', ')}`);
   if (externalCalls.length) throw new Error(`requests externas bloqueadas: ${externalCalls.join(', ')}`);
 
+  // WebM por pestaña. Al cerrar, Playwright repite el último frame al menos 1 s más, así que la duración no sirve para
+  // estimar el desfase: se usa el reloj de la pestaña (inS = inMs − t0), calibrado con la toma --sample (≈ +0,06 s).
+  const tabInfo = {};
+  for (const [role, video] of Object.entries(videos)) {
+    const file = join(WORK, 'raw', `${role}.webm`);
+    await video.saveAs(file);
+    tabInfo[role] = { video: `raw/${role}.webm`, t0: t0[role], cierreMs: closeMs, ...probeWebm(file) };
+  }
+  for (const clip of clips) {
+    for (const part of clip.parts) {
+      if (part.kind !== 'video') continue;
+      part.inS = Number(((part.inMs - tabInfo[part.tab].t0) / 1000).toFixed(3));
+      if (part.inS < 0 || part.inS + part.frames / FPS > tabInfo[part.tab].durationS + 0.5) throw new Error(`clip ${clip.id}: tramo ${part.tab} fuera de la toma`);
+    }
+    const total = clip.parts.reduce((sum, part) => sum + part.frames, 0);
+    if (!sample && total !== CLIP_FRAMES) throw new Error(`clip ${clip.id}: ${total} frames planificados (esperado ${CLIP_FRAMES})`);
+  }
+
   const marcas = {
     commit, playwright: JSON.parse(readFileSync(join(PROTO, 'node_modules/@playwright/test/package.json'), 'utf8')).version,
-    chromium: browser.version?.() ?? null, viewport: [VIEWPORT.width, VIEWPORT.height], fps: FPS, puntero: POINTER,
+    chromium: browser.version(), viewport: [VIEWPORT.width, VIEWPORT.height], fps: FPS, puntero: POINTER,
+    fuente: 'context.recordVideo (WebM VP9 continuo, 1920x1080, 30 fps)',
     apiCalls: apiCalls.length, externalCalls: externalCalls.length, storageBeforeLogin: storedBeforeLogin, storageAfter: storedAfter,
-    uniqueShots: Director.count, saldoC4: { hiladoNegro: '24 g', almaNegra: '12 g' },
-    clips: clips.map((clip) => ({ id: clip.id, file: clip.file, frames: clip.frames.length, segments: clip.segments, beats: clip.beats,
-      checkpoints: { entrada: clip.entrada, salida: clip.salida, ok: true } })),
+    saldoC4: sample ? null : { hiladoNegro: '24 g', almaNegra: '12 g' },
+    tabs: tabInfo,
+    clips: clips.map((clip) => ({ id: clip.id, file: clip.file, parts: clip.parts.map((part) => ({ ...part, png: part.png ? `cards/${part.png.split(sep).pop()}` : undefined })),
+      beats: clip.beats, checkpoints: { entrada: clip.entrada, salida: clip.salida, ok: true } })),
   };
-  writeFileSync(join(WORK, 'marcas.json'), `${JSON.stringify(marcas, null, 2)}\n`);
-  // Secuencia de imágenes por clip con enlaces duros: el frame n del clip es exactamente seq/<clip>/fNNNNN.png.
-  for (const clip of clips) {
-    const dir = join(WORK, 'seq', `clip${clip.id}`);
-    mkdirSync(dir, { recursive: true });
-    clip.frames.forEach((png, index) => linkSync(png, join(dir, `f${String(index).padStart(5, '0')}.png`)));
-  }
-  log(`captura OK: ${Director.count} cuadros únicos, 0 /api, marcas en ${join(WORK, 'marcas.json')}`);
-  return marcas;
+  writeFileSync(join(WORK, sample ? 'marcas-sample.json' : 'marcas.json'), `${JSON.stringify(marcas, null, 2)}\n`);
+  log(`captura OK: ${Object.keys(tabs).length} WebM, 0 /api, 0 externos`);
+  return { marcas, clips };
 }
 
 // ───────────────────────── Codificación ─────────────────────────
@@ -550,16 +574,45 @@ function checkEncoder() {
   const version = ffmpeg(['-version']).stdout.split('\n')[0];
   if (!/\blibx264\b/.test(ffmpeg(['-encoders']).stdout)) throw new Error('el ffmpeg no trae libx264');
   if (!/^\s*E\s+mp4\b/m.test(ffmpeg(['-muxers']).stdout)) throw new Error('el ffmpeg no escribe mp4');
+  if (!/\bmatroska,webm\b/.test(ffmpeg(['-demuxers']).stdout)) throw new Error('el ffmpeg no lee webm');
   return { path: FFMPEG, version, sha256: sha256(FFMPEG) };
 }
 
-function encode() {
+// Duración y códec del WebM leídos del encabezado que imprime ffmpeg (no hay ffprobe en el entorno).
+function probeWebm(file) {
+  const result = spawnSync(FFMPEG, ['-hide_banner', '-nostdin', '-i', file], { encoding: 'utf8' });
+  const duration = result.stderr.match(/Duration: (\d+):(\d+):(\d+\.\d+)/);
+  const stream = result.stderr.match(/Stream #0:0.*Video: (\w+).*?, (\d+)x(\d+).*?, (\d+(?:\.\d+)?) fps/);
+  if (!duration || !stream) throw new Error(`${file}: no se pudo leer el WebM`);
+  return { durationS: Number(duration[1]) * 3600 + Number(duration[2]) * 60 + Number(duration[3]), codec: stream[1], size: `${stream[2]}x${stream[3]}`, fps: Number(stream[4]) };
+}
+
+const toYuv = 'scale=1920:1080:flags=lanczos:out_color_matrix=bt709:out_range=tv,format=yuv420p,setsar=1';
+
+// Cada parte (tarjeta PNG o tramo del WebM) se normaliza a 30 fps y se corta en su número exacto de frames; el tramo se
+// completa con su último frame si la toma quedó corta. Fundido a negro en los últimos 30 frames del clip.
+function encodeClip(clip, output, totalFrames, { fade = true } = {}) {
+  const inputs = [];
+  const filters = [];
+  clip.parts.forEach((part, index) => {
+    if (part.kind === 'card') {
+      inputs.push('-loop', '1', '-framerate', String(FPS), '-t', String(part.frames / FPS + 0.5), '-i', part.png);
+      filters.push(`[${index}:v]${toYuv},trim=end_frame=${part.frames},setpts=N/${FPS}/TB[p${index}]`);
+    } else {
+      inputs.push('-ss', part.inS.toFixed(3), '-t', (part.frames / FPS + 1).toFixed(3), '-i', join(WORK, 'raw', `${part.tab}.webm`));
+      filters.push(`[${index}:v]fps=${FPS},${toYuv},tpad=stop_mode=clone:stop_duration=2,trim=end_frame=${part.frames},setpts=N/${FPS}/TB[p${index}]`);
+    }
+  });
+  const labels = clip.parts.map((_, index) => `[p${index}]`).join('');
+  filters.push(`${labels}concat=n=${clip.parts.length}:v=1:a=0,${fade ? `fade=t=out:start_frame=${totalFrames - FADE_FRAMES}:nb_frames=${FADE_FRAMES},` : ''}trim=end_frame=${totalFrames},setpts=N/${FPS}/TB[v]`);
+  ffmpeg(['-y', ...inputs, '-filter_complex', filters.join(';'), '-map', '[v]', '-frames:v', String(totalFrames), ...X264, output]);
+}
+
+function encode(clips) {
   const stage = join(WORK, 'stage');
-  for (const clip of CLIPS) {
+  for (const clip of clips) {
     log('codifica', clip.file);
-    ffmpeg(['-y', '-framerate', String(FPS), '-start_number', '0', '-i', join(WORK, 'seq', `clip${clip.id}`, 'f%05d.png'),
-      '-vf', `scale=out_color_matrix=bt709:out_range=tv,format=yuv420p,setsar=1,fade=t=out:start_frame=${CLIP_FRAMES - FADE_FRAMES}:nb_frames=${FADE_FRAMES}`,
-      '-frames:v', String(CLIP_FRAMES), ...X264, join(stage, clip.file)]);
+    encodeClip(clip, join(stage, clip.file), CLIP_FRAMES);
   }
   // Continuo: los cinco clips en orden, unidos sin recodificar (mismos SPS/PPS y GOP cerrado).
   const list = join(stage, 'concat.txt');
@@ -695,9 +748,18 @@ async function main() {
     return;
   }
   log('trabajo en', WORK);
-  const marcas = await capture();
+  if (flag('--sample')) {
+    // Toma de prueba: WebM crudo + MP4 de 10,000 s sin fundido para revisar a 1080p; no publica nada.
+    const { clips: [clip] } = await capture({ sample: true });
+    const output = join(WORK, 'sample-10s.mp4');
+    encodeClip(clip, output, 10 * FPS, { fade: false });
+    const info = inspectMp4(output);
+    log(`sample: ${join(WORK, 'raw', 'cliente.webm')} y ${output} (${info.tracks[0].samples} frames, ${info.movieDuration.toFixed(3)} s)`);
+    return;
+  }
+  const { marcas, clips } = await capture();
   if (!encoder) { log('--capture-only: sin codificar'); return; }
-  encode();
+  encode(clips);
   const { report, hashes, total } = verify(join(WORK, 'stage'));
   mkdirSync(OUT, { recursive: true });
   const outputs = [...CLIPS.map((clip) => clip.file), CONTINUOUS.file];
@@ -708,10 +770,12 @@ async function main() {
   writeFileSync(join(OUT, 'verificacion-video.txt'), [
     `JACSA Gestión · verificación de video mudo (generado por prototipo/scripts/video/record-demo-video.mjs)`,
     `commit=${marcas.commit}  playwright=${marcas.playwright}  chromium=${marcas.chromium}  viewport=${marcas.viewport.join('x')}  puntero=${marcas.puntero}`,
+    `fuente=${marcas.fuente}; tarjetas de título y cierre en PNG`,
+    ...Object.entries(marcas.tabs).map(([role, tab]) => `  toma ${role}: ${tab.codec} ${tab.size} ${tab.fps} fps, ${tab.durationS.toFixed(2)} s`),
     `encoder=${encoder.version}  sha256=${encoder.sha256}`,
     `aislamiento: contexto nuevo sin storageState; localStorage jacsa-demo:* antes del login=[${marcas.storageBeforeLogin.join(',')}]; llamadas /api=${marcas.apiCalls}; requests externas=${marcas.externalCalls}`,
     `checkpoints C0→C4 OK; saldo C4 verificado en Stock: hilado negro 24 g, alma negra 12 g`,
-    `beats: ${beats.length}, desfase máximo ${Math.max(...beats).toFixed(3)} s (tolerancia ${LATE_TOLERANCE_S} s); cuadros únicos=${marcas.uniqueShots}`,
+    `beats: ${beats.length}, desfase máximo ${Math.max(...beats).toFixed(3)} s (tolerancia ${LATE_TOLERANCE_S} s, reloj real)`,
     ...report, '',
   ].join('\n'));
   writeFileSync(join(OUT, 'captura-marcas.json'), `${JSON.stringify(marcas, null, 2)}\n`);
