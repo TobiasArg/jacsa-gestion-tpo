@@ -8,6 +8,7 @@
     "dev": "node server/index.mjs",
     "dev:ui": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
+    "build:demo": "tsc --noEmit && vite build --mode browser-demo",
     "start": "node server/index.mjs",
     "test": "node --test tests/*.test.mjs",
     "test:e2e": "playwright test"

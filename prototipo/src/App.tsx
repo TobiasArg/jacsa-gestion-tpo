@@ -13,6 +13,7 @@ import { Quotes } from './Quotes';
 import { Stock } from './Stock';
 import { Technology } from './Technology';
 import { Button, InlineNotice, LogoMark } from './components';
+import { DemoModeNotice, isBrowserDemo } from './browser-mode';
 import type { Role, Snapshot, User } from './types';
 import './styles.css';
 
@@ -86,7 +87,7 @@ export default function App() {
   }, []);
 
   const onUnauthorized = useCallback(() => {
-    setSessionNotice('Tu sesión expiró o se cerró en otro lugar. Ingresa nuevamente para continuar; no se guardaron cambios pendientes.');
+    setSessionNotice(isBrowserDemo ? 'Tu perfil de demostración se cerró o fue deshabilitado. Ingresa nuevamente para continuar; no se guardaron cambios pendientes.' : 'Tu sesión expiró o se cerró en otro lugar. Ingresa nuevamente para continuar; no se guardaron cambios pendientes.');
     setUser(null);
     setSnapshot(null);
     setLoadState('ready');
@@ -244,7 +245,7 @@ export default function App() {
     }
   }
 
-  if (loadState === 'loading' && !user) return <LoadingScreen message="Comprobando sesión segura…" />;
+  if (loadState === 'loading' && !user) return <LoadingScreen message={isBrowserDemo ? 'Abriendo demo local…' : 'Comprobando sesión segura…'} />;
   if (loadState === 'error') return <ErrorScreen message={loadError} onRetry={async () => {
     setLoadState('loading');
     try {
@@ -311,14 +312,15 @@ export default function App() {
       <div className="app-main">
         <header className="topbar">
           <div className="topbar-left"><button className="mobile-menu-button" onClick={() => setMobileNavOpen(true)} aria-label="Abrir menú" aria-controls="mobile-navigation" aria-expanded={mobileNavOpen}><Menu size={21} /></button><div className="breadcrumb"><span>JACSA /</span><b>{selectedTitle}</b></div></div>
-          <div className="topbar-right"><div className="system-status"><span className="live-dot" /> <span>Sesión activa</span></div><div className="topbar-divider" /><div className="user-menu"><span className="user-avatar-small">{user.name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toLocaleUpperCase('es')}</span><span className="user-menu-copy"><b>{user.name}</b><small>{roleLabel(user.role)}</small></span></div><Button variant="ghost" className="logout-button" onClick={() => void logout()} disabled={logoutBusy}>{logoutBusy ? <RefreshCw size={16} className="spin" /> : <LogOut size={16} />}<span>{logoutBusy ? 'Saliendo…' : 'Salir'}</span></Button></div>
+          <div className="topbar-right"><div className="system-status"><span className="live-dot" /> <span>{isBrowserDemo ? 'Perfil de demostración' : 'Sesión activa'}</span></div><div className="topbar-divider" /><div className="user-menu"><span className="user-avatar-small">{user.name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toLocaleUpperCase('es')}</span><span className="user-menu-copy"><b>{user.name}</b><small>{roleLabel(user.role)}</small></span></div><Button variant="ghost" className="logout-button" onClick={() => void logout()} disabled={logoutBusy}>{logoutBusy ? <RefreshCw size={16} className="spin" /> : <LogOut size={16} />}<span>{logoutBusy ? 'Saliendo…' : 'Salir'}</span></Button></div>
         </header>
         <main className="main-stage">
+          {isBrowserDemo && <div className="shell-feedback"><DemoModeNotice compact /></div>}
           {logoutError && <div className="shell-feedback"><InlineNotice variant="error" role="alert">{logoutError}</InlineNotice></div>}
           {syncError && <div className="shell-feedback"><InlineNotice variant="warning" role="alert"><span>{syncError} Los datos visibles pueden estar desactualizados.</span><button className="inline-retry" onClick={() => void refreshSnapshot()}><RefreshCw size={14} /> Reintentar</button></InlineNotice></div>}
           {primaryPage()}
         </main>
-        <footer className="app-footer"><span>JACSA / GESTIÓN INDUSTRIAL</span><span><ShieldCheck size={13} /> SESIÓN SEGURA · SOLO DATOS LOCALES</span><span>SINCRONIZACIÓN CADA 8 S</span></footer>
+        <footer className="app-footer"><span>JACSA / GESTIÓN INDUSTRIAL</span>{isBrowserDemo ? <span>PERFIL DE DEMOSTRACIÓN · DATOS EN ESTE NAVEGADOR</span> : <span><ShieldCheck size={13} /> SESIÓN SEGURA · SOLO DATOS LOCALES</span>}<span>SINCRONIZACIÓN CADA 8 S</span></footer>
       </div>
     </div>
   );

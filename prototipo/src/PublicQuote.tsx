@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, Check, CircleHelp, Clock3, PackageCheck, Radio, 
 import { api, ApiError } from './api';
 import { ActionFeedback, Badge, Button, Card, Field, Input, InlineNotice, LogoMark, Select, TextArea } from './components';
 import type { Client, Estimate, PublicArticle, Unit } from './types';
+import { DemoModeNotice, isBrowserDemo } from './browser-mode';
 import { COMPANY_MAX, CUIT_MAX, EMAIL_MAX, hasMarkup, maxQuantityFor, NO_MARKUP_HINT, NOTES_API_MAX, NOTES_USER_MAX, PHONE_MAX, PHONE_MIN } from './limits';
 import { formatCents, unitLabel } from './utils';
 
@@ -171,6 +172,7 @@ export function PublicQuote({ client, onBack, backLabel = 'Volver a mi portal', 
         {onBack && <button className="public-link" onClick={onBack}><ArrowLeft size={15} /> {backLabel}</button>}
         {!onBack && <a className="public-link" href="#/login">Ingresar <ArrowRight size={15} /></a>}
       </header>
+      {!onBack && <DemoModeNotice />}
 
       <div className="quote-layout">
         <section className="quote-story">
@@ -257,7 +259,7 @@ export function PublicQuote({ client, onBack, backLabel = 'Volver a mi portal', 
           </form>
         </Card>
       </div>
-      <footer className="public-footer"><span>JACSA · CORDONERÍA INDUSTRIAL</span><span>Prototipo local para demostración académica</span></footer>
+      <footer className="public-footer"><span>JACSA · CORDONERÍA INDUSTRIAL</span><span>{isBrowserDemo ? 'Demo local · datos solo en este navegador' : 'Prototipo local para demostración académica'}</span></footer>
     </div>
   );
 }

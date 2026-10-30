@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Check, CircleAlert, DatabaseBackup, MonitorCog, ShieldCheck, UserRoundCog, Users, X } from 'lucide-react';
 import { ActionFeedback, Badge, Button, Card, EmptyState, Field, Input, PageHeading } from './components';
 import type { Snapshot, User } from './types';
+import { isBrowserDemo } from './browser-mode';
 import { useAction } from './useAction';
 
 export function Technology({ snapshot, refresh, onUnauthorized }: { snapshot: Snapshot; refresh: () => Promise<boolean>; onUnauthorized: () => void }) {
@@ -46,12 +47,17 @@ export function Technology({ snapshot, refresh, onUnauthorized }: { snapshot: Sn
       <div className="environment-grid">
         <Card className="environment-card">
           <div className="environment-icon"><MonitorCog size={21} /></div><p className="eyebrow">Entorno local</p><h2>Demo académica</h2>
+          {isBrowserDemo ? <>
+          <p>El sistema opera con datos ficticios guardados en este navegador. No se comparten en la nube ni entre dispositivos, y no realiza facturación, operaciones bancarias ni envíos externos.</p>
+          <div className="environment-facts"><span><UserRoundCog size={15} /> Perfil de demostración por pestaña</span><span><DatabaseBackup size={15} /> Datos en este navegador</span></div>
+          </> : <>
           <p>El sistema opera con datos sintéticos en una base local. No realiza facturación, operaciones bancarias ni envíos externos.</p>
           <div className="environment-facts"><span><ShieldCheck size={15} /> API con sesión segura</span><span><DatabaseBackup size={15} /> Almacenamiento SQLite local</span></div>
+          </>}
         </Card>
         <Card className="reset-card">
           <span className="reset-icon"><DatabaseBackup size={20} /></span><p className="eyebrow">Acción protegida</p><h2>Reiniciar datos demo</h2>
-          <p>Restablece el dataset demostrativo local. La operación no puede deshacerse y solo se permite con el modo demo del servidor habilitado.</p>
+          <p>{isBrowserDemo ? 'Restablece los datos de demostración guardados en este navegador. La operación no puede deshacerse y afecta a todas las pestañas abiertas aquí.' : 'Restablece el dataset demostrativo local. La operación no puede deshacerse y solo se permite con el modo demo del servidor habilitado.'}</p>
           <Button variant="danger" onClick={() => { action.dismiss(); setConfirmation(''); setConfirmOpen(true); }}><CircleAlert size={15} /> Solicitar reinicio</Button>
         </Card>
       </div>
@@ -60,7 +66,7 @@ export function Technology({ snapshot, refresh, onUnauthorized }: { snapshot: Sn
         <section className="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="reset-heading">
           <button className="dialog-close" autoFocus onClick={() => setConfirmOpen(false)} aria-label="Cerrar confirmación"><X size={18} /></button>
           <span className="dialog-alert-icon"><CircleAlert size={22} /></span><p className="eyebrow">Confirmación requerida</p><h2 id="reset-heading">¿Reiniciar la demo?</h2>
-          <p>Se reemplazarán los datos de demostración. Esta acción se envía al servidor, que verificará que el modo demo esté habilitado.</p>
+          <p>{isBrowserDemo ? 'Se reemplazarán los datos de demostración guardados en este navegador. No se contacta ningún servidor.' : 'Se reemplazarán los datos de demostración. Esta acción se envía al servidor, que verificará que el modo demo esté habilitado.'}</p>
           <form className="form-stack" onSubmit={resetDemo}>
             <Field label="Escribe exactamente REINICIAR DEMO" htmlFor="reset-confirm"><Input id="reset-confirm" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} autoComplete="off" autoFocus /></Field>
             <ActionFeedback error={action.error} success={action.success} />

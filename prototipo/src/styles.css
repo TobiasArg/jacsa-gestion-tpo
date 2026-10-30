@@ -798,3 +798,11 @@ a { color: inherit; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* Aviso persistente del modo browser-demo (solo se renderiza con VITE_BROWSER_DEMO === 'true'). */
+.demo-mode-notice { display: flex; align-items: flex-start; gap: 9px; width: min(100%, 1150px); margin: 18px auto 0; padding: 10px 14px; border: 1px solid rgba(20, 120, 115, .2); border-radius: 11px; color: var(--teal-dark); background: rgba(255, 255, 255, .58); box-shadow: 0 8px 24px rgba(32, 58, 57, .05); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); font-size: 10px; line-height: 1.55; }
+.demo-mode-notice svg { flex: none; margin-top: 2px; }
+.demo-mode-notice p { margin: 0; }
+.demo-mode-notice b { font-weight: 700; }
+.demo-mode-notice-compact { width: 100%; margin: 0; }
+.public-quote-page > .demo-mode-notice { width: 100%; margin: 14px 0 0; }

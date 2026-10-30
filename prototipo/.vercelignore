@@ -1,0 +1,17 @@
+# Demo estática: solo se sube el frontend. Sin servidor, tests, datos ni secretos.
+server/
+tests/
+data/
+dist/
+node_modules/
+test-results/
+playwright-report/
+playwright.config.ts
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.db
+.env
+.env.*
+.vercel/
+*.log
