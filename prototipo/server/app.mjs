@@ -268,12 +268,21 @@ function allocateAvailableStock(db, insumoId) {
   }
 }
 
-function addNotification(db, { orderId = null, quoteId = null, clientId, event, recipient, status = 'Registrada', subject, body }) {
+function notificationDelivery(recipient) {
+  const normalizedRecipient = typeof recipient === 'string' ? recipient.trim() : '';
+  return {
+    recipient: normalizedRecipient,
+    status: normalizedRecipient ? 'Registrada' : 'Pendiente de reintento',
+  };
+}
+
+function addNotification(db, { orderId = null, quoteId = null, clientId, event, recipient, subject, body }) {
   const notificationId = `notification-${randomUUID()}`;
+  const delivery = notificationDelivery(recipient);
   db.prepare(`INSERT INTO notifications
     (id, order_id, quote_id, client_id, event, recipient, channel, status, subject, body, created_at)
     VALUES (?, ?, ?, ?, ?, ?, 'Email', ?, ?, ?, ?)`)
-    .run(notificationId, orderId, quoteId, clientId, event, recipient, status, subject, body, nowIso());
+    .run(notificationId, orderId, quoteId, clientId, event, delivery.recipient, delivery.status, subject, body, nowIso());
   return notificationId;
 }
 
@@ -283,15 +292,13 @@ function notifyOrder(db, orderId, event) {
     FROM orders o JOIN clients c ON c.id = o.client_id
     JOIN articles a ON a.id = o.article_id WHERE o.id = ?`).get(orderId);
   if (!order) fail(404, 'No se encontró el pedido para registrar el aviso', 'ORDER_NOT_FOUND');
-  const recipient = typeof order.email === 'string' ? order.email.trim() : '';
   const subject = `${order.number} — ${order.article_code} ${order.article_name} — ${event} — entrega ${order.due_date}`;
   const body = `El pedido ${order.number} del artículo ${order.article_code} ${order.article_name} cambió al estado ${event}. Fecha de entrega: ${order.due_date}.`;
   return addNotification(db, {
     orderId,
     clientId: order.client_id,
     event,
-    recipient,
-    status: recipient ? 'Registrada' : 'Pendiente de reintento',
+    recipient: order.email,
     subject,
     body,
   });
@@ -402,7 +409,8 @@ function snapshot(db, user) {
   if (['manager', 'admin'].includes(role)) {
     quotes = own('SELECT * FROM quotes ORDER BY created_at DESC').map((row) => mapQuote(row, true));
   } else if (role === 'client') {
-    quotes = own('SELECT * FROM quotes WHERE client_id = ? ORDER BY created_at DESC', [user.clientId]).map((row) => mapQuote(row, false));
+    quotes = own("SELECT * FROM quotes WHERE client_id = ? AND status <> 'Pendiente' ORDER BY created_at DESC", [user.clientId])
+      .map((row) => mapQuote(row, false));
   }
 
   let orders = [];
@@ -523,6 +531,9 @@ function mapOrder(db, row, role) {
       return entry;
     }),
   };
+  if (role !== 'client') {
+    result.delayed = row.due_date < dayString() && ['Pendiente', 'En producción', 'Listo'].includes(row.status);
+  }
   if (role !== 'operator') {
     result.quoteId = row.quote_id;
     result.clientId = row.client_id;
@@ -554,6 +565,7 @@ function mapInsumo(db, row, role) {
     reservedGrams: reserved,
     availableGrams: row.stock_grams - reserved,
     minGrams: row.minimum_grams,
+    belowMinimum: row.stock_grams < row.minimum_grams,
     requiredGrams: demand.required,
     shortageGrams: demand.shortage,
   };
@@ -723,14 +735,7 @@ export function createApp({ dbPath = process.env.JACSA_DB ?? join(appDirectory, 
     const validDays = integer(body.validDays, 'validDays', { min: 1, max: 365 });
     const allowStale = body.allowStale === undefined ? false : boolean(body.allowStale, 'allowStale');
     if (data.stale && !allowStale) fail(409, 'Confirme el uso del precio vencido para continuar', 'STALE_PRICE');
-    let requestId = null;
-    if (body.requestId !== undefined) {
-      requestId = idText(body.requestId, 'requestId');
-      const request = db.prepare('SELECT * FROM requests WHERE id = ?').get(requestId);
-      if (!request) fail(404, 'No se encontró la solicitud', 'REQUEST_NOT_FOUND');
-      if (request.status !== 'Nueva') fail(409, 'La solicitud ya fue cotizada', 'REQUEST_ALREADY_QUOTED');
-      if (request.client_id && request.client_id !== clientId) fail(403, 'La solicitud pertenece a otro cliente', 'CLIENT_MISMATCH');
-    }
+    const requestId = body.requestId === undefined ? null : idText(body.requestId, 'requestId');
     const netCents = netFor(data.costCents, units, markupPercent);
     const vatCents = vatFor(netCents);
     const totalCents = safeCents(netCents + vatCents);
@@ -739,13 +744,23 @@ export function createApp({ dbPath = process.env.JACSA_DB ?? join(appDirectory, 
     const createdAt = nowIso();
     const expiresAt = plusDays(new Date(createdAt), validDays).toISOString();
     inTransaction(db, () => {
+      const request = requestId ? db.prepare('SELECT * FROM requests WHERE id = ?').get(requestId) : null;
+      if (requestId && !request) fail(404, 'No se encontró la solicitud', 'REQUEST_NOT_FOUND');
+      if (request && request.status !== 'Nueva') fail(409, 'La solicitud ya fue cotizada', 'REQUEST_ALREADY_QUOTED');
+      if (request && request.client_id !== null && request.client_id !== clientId) {
+        fail(403, 'La solicitud pertenece a otro cliente', 'CLIENT_MISMATCH');
+      }
       db.prepare(`INSERT INTO quotes
         (id, number, request_id, client_id, article_id, quantity, unit, units, markup_percent, valid_days,
          net_cents, vat_cents, total_cents, status, stale_accepted, created_at, expires_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pendiente', ?, ?, ?)`)
         .run(id, number, requestId, clientId, articleId, quantity, unit, units, markupPercent, validDays,
           netCents, vatCents, totalCents, data.stale ? 1 : 0, createdAt, expiresAt);
-      if (requestId) db.prepare("UPDATE requests SET status = 'Cotizada' WHERE id = ?").run(requestId);
+      if (requestId && request.client_id === null) {
+        db.prepare("UPDATE requests SET client_id = ?, status = 'Cotizada' WHERE id = ?").run(clientId, requestId);
+      } else if (requestId) {
+        db.prepare("UPDATE requests SET status = 'Cotizada' WHERE id = ?").run(requestId);
+      }
     });
     return { status: 201, body: { ok: true, id } };
   }));
@@ -862,8 +877,6 @@ export function createApp({ dbPath = process.env.JACSA_DB ?? join(appDirectory, 
       if (!db.prepare('SELECT 1 FROM article_machines WHERE article_id = ? AND machine_id = ?').get(order.article_id, machineId)) {
         fail(409, 'La máquina no es compatible con el artículo', 'MACHINE_INCOMPATIBLE');
       }
-      const active = db.prepare("SELECT id FROM orders WHERE machine_id = ? AND status = 'En producción' LIMIT 1").get(machineId);
-      if (active) fail(409, 'La máquina ya tiene un pedido en producción', 'MACHINE_BUSY');
       db.prepare('UPDATE orders SET machine_id = ?, priority = ? WHERE id = ?').run(machineId, priority, orderId);
       addHistory(db, orderId, req.user, `Planificado en ${machineId} con prioridad ${priority}`);
     });
@@ -976,7 +989,11 @@ export function createApp({ dbPath = process.env.JACSA_DB ?? join(appDirectory, 
     const notification = db.prepare('SELECT * FROM notifications WHERE id = ?').get(notificationId);
     if (!notification) fail(404, 'No se encontró la notificación', 'NOTIFICATION_NOT_FOUND');
     if (notification.status !== 'Pendiente de reintento') fail(409, 'La notificación no está pendiente de reintento', 'NOTIFICATION_NOT_PENDING');
-    db.prepare("UPDATE notifications SET status = 'Registrada', retry_count = retry_count + 1 WHERE id = ?").run(notificationId);
+    const client = db.prepare('SELECT email FROM clients WHERE id = ?').get(notification.client_id);
+    const delivery = notificationDelivery(client?.email);
+    if (!delivery.recipient) fail(409, 'La notificación no tiene un destinatario de contacto', 'NOTIFICATION_RECIPIENT_MISSING');
+    db.prepare(`UPDATE notifications SET recipient = ?, status = 'Registrada', retry_count = retry_count + 1 WHERE id = ?`)
+      .run(delivery.recipient, notificationId);
     return { ok: true, id: notificationId };
   }));
 
