@@ -2,6 +2,10 @@
 
 Aplicación local por roles con catálogo, cotizador configurable, cotizaciones, pedidos, reservas, stock, producción, portal de clientes y bandeja de avisos. Interfaz glass minimalista en español. Los originales `TPO General.docx` y `TEMPLATE CONSIGNAS` se mantienen separados de la documentación viva del prototipo.
 
+## Demo pública en el navegador
+
+**https://jacsa-gestion-tpo.vercel.app** (Vercel, publicada 2026-10-30). Build estático `browser-demo`: sin servidor ni base en la nube; los datos se guardan en el `localStorage` de ese navegador y origen, y no se comparten entre navegadores ni dispositivos. Cada pestaña mantiene su propio perfil sobre los mismos datos; los perfiles son UX de demostración, no seguridad. Usar solo datos ficticios; "Reiniciar demo" (perfil `sergio`) vuelve al seed. Detalle, límites y QA en [despliegue Vercel](documentacion/despliegue-vercel.md).
+
 ## Abrir la aplicación
 
 Desde la carpeta **`prototipo/`**, con Node 24.13.x:
@@ -54,7 +58,7 @@ Abrir **http://127.0.0.1:3002** y verificar `/api/health`. `JACSA_DB` es relativ
 
 Cliente Alfa solicita ART-001 por **2 gruesas = 288 cordones**. La cotización muestra neto **$21.600**, IVA **$4.536**, total **$26.136**. Al convertir a pedido se reservan 400 g de hilado y 200 g de alma; faltan 176 g y 88 g. Administración ingresa 200 g y 100 g; se asigna Máquina 04 y el operario registra 288 unidades con control de calidad. Tras producir quedan 24 g de hilado y 12 g de alma; el portal muestra el pedido Listo y sus avisos registrados.
 
-No se envían correos ni WhatsApp: los avisos quedan registrados en una bandeja. No hay facturación, pagos, órdenes de compra completas, IoT ni optimización automática. El catálogo y las fichas están precargados para el recorrido; no se implementó su CRUD completo. El prototipo tiene URL local, no un despliegue público.
+No se envían correos ni WhatsApp: los avisos quedan registrados en una bandeja. No hay facturación, pagos, órdenes de compra completas, IoT ni optimización automática. El catálogo y las fichas están precargados para el recorrido; no se implementó su CRUD completo. El modo completo (Express + SQLite) corre solo en URL local; la URL pública es la demo de navegador descrita arriba.
 
 ## Verificación reproducible
 
@@ -68,6 +72,8 @@ npm run test:e2e
 ```
 
 **Última QA final registrada (2026-10-30 UTC):** `npm ci` finalizó con 0 vulnerabilidades reportadas por audit; backend/API **48/48 PASS**; TypeScript/Vite **build correcto (1594 módulos)**; E2E **50/50 PASS** (27 casos de navegador y 23 API-only); harness E2E **3/3 PASS**. La corrida completa usó el puerto 3182 y base temporal del launcher. Los 33 backend y 5 E2E descritos en notas antiguas son cifras históricas, no el resultado vigente. Ver comandos, evidencia y límites en [QA final](documentacion/qa-final.md).
+
+**Demo de navegador (2026-10-30):** `npm test` **66/66** (48 backend/API + 18 motor demo); `npm run build:demo` y `npx playwright test -c playwright.demo.config.ts` **3/3** con `vite preview` en 4190 y **3/3** contra la URL pública (`JACSA_DEMO_URL=…`), con cero llamadas `/api/`. Ese resultado no reemplaza la QA del modo servidor. Ver [despliegue Vercel](documentacion/despliegue-vercel.md).
 
 Desde `prototipo/` se pueden ejecutar `npm test`, `npm run build`, `npm run test:e2e` y `node --test tests/e2e/harness.test.mjs`. La configuración E2E usa un puerto aislado y base temporal; consultar el registro QA antes de elegir puerto/directorio de evidencia. No conectar ni reiniciar una demo persistente para obtener una corrida de prueba.
 

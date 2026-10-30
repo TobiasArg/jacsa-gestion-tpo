@@ -29,6 +29,10 @@ El cierre QA consta en [`../documentacion/qa-final.md`](../documentacion/qa-fina
 
 Los archivos `server/` implementan las reglas y autorización. `src/` contiene vistas por rol. `tests/` conserva pruebas reproducibles. `CONTRATO.md` describe la integración; no reemplaza las pruebas ni constituye una especificación productiva.
 
+## Demo estática (Vercel)
+
+`npm run build:demo` genera `dist/` sin backend (motor local con `localStorage`); `vercel.json` y `.vercelignore` publican solo ese build. Publicada en https://jacsa-gestion-tpo.vercel.app. QA: `npm run build:demo && npx playwright test -c playwright.demo.config.ts` (`vite preview` de `dist/` en 127.0.0.1:4190) o `JACSA_DEMO_URL=<url> npx playwright test -c playwright.demo.config.ts`. Detalle en [`../documentacion/despliegue-vercel.md`](../documentacion/despliegue-vercel.md).
+
 ## Variables
 
 - `JACSA_DB`: ruta alternativa a una base SQLite local.
