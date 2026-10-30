@@ -46,7 +46,7 @@ Abrir **`http://127.0.0.1:3002`** y comprobar `http://127.0.0.1:3002/api/health`
 - No reemplazar el CUIT por un ejemplo inválido ni usar datos personales reales.
 - Stock inicial: **INS-NEGRO / Hilado negro: 400 g**; **INS-ALMA / Alma negra: 200 g**.
 - Pedido de la historia: ART-001, 2 gruesas = 288 cordones; neto 21.600, IVA 4.536, total 26.136 ARS; faltantes 176 g y 88 g; ingreso 200 g y 100 g.
-- El seed crea dos pedidos de otros artículos: **COT-DEMO-001 / ART-002** y **COT-DEMO-002 / ART-003**. No consumen INS-NEGRO ni INS-ALMA y no interfieren con este recorrido.
+- El seed crea dos pedidos de otros artículos: **ART-002** y **ART-003**. No consumen INS-NEGRO ni INS-ALMA y no interfieren con este recorrido.
 
 ## 3. Controles reales de la interfaz
 
@@ -69,7 +69,7 @@ Abrir **`http://127.0.0.1:3002`** y comprobar `http://127.0.0.1:3002/api/health`
 | 1 | Cliente | Ingresar; **Mi portal** → **Nueva solicitud**; ART-001; 2 gruesas; completar teléfono y consentimiento; **Enviar solicitud** | Vista previa 21.600 / 4.536 / 26.136; solicitud registrada y visible en **Solicitudes enviadas** |
 | 2 | Rodrigo | **Resumen** → **Preparar cotización**; **Recargo sobre costo (%)** 25; **Vigencia (días)** 7; **Crear cotización** → **Enviar propuesta** → **Registrar aceptación** → **Convertir en pedido** | Cotización aceptada; pedido Pendiente; reserva 400/200; faltantes 176/88 |
 | 3 | Lorena | **Stock e insumos**; **Material** Hilado negro (INS-NEGRO), 200 g, memo, **Registrar ingreso**; repetir Alma negra (INS-ALMA), 100 g | Faltantes en cero; ingresos en **Movimientos recientes** |
-| 4 | Rodrigo | **Pedidos** → **Ver orden** → **Máquina** «Máquina 04» (M-04) → **Guardar plan** | Máquina y prioridad asignadas |
+| 4 | Rodrigo | **Pedidos** → **Ver orden** → **Máquina** «Máquina 04» (M-04) → **Prioridad (1 = más urgente)** = 1 → **Guardar plan** | Máquina y prioridad asignadas |
 | 5 | Operario | **Cola de producción** → **Ver orden** → **Iniciar producción**; **Unidades acumuladas · 288 total** = 288; **Control de calidad aprobado**; **Guardar avance** | Pedido **Listo**; consumo incremental registrado |
 | 6 | Cliente / Rodrigo | Cliente: **Mi portal** → **Mis avisos**. Rodrigo: **Bandeja de avisos** | Mismo evento registrado; sin correo ni WhatsApp real |
 | 7 | Cliente / operario | Revisar permisos y datos visibles | Cliente solo lo propio; operario sin precios; manager con datos comerciales |
