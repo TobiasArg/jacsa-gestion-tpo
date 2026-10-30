@@ -1,5 +1,5 @@
 {
-  "commit": "9a02145",
+  "commit": "fc5cba6",
   "playwright": "1.64.1",
   "chromium": "156.0.8078.4",
   "viewport": [
@@ -8,60 +8,107 @@
   ],
   "fps": 30,
   "puntero": true,
+  "fuente": "context.recordVideo (WebM VP9 continuo, 1920x1080, 30 fps)",
   "apiCalls": 0,
   "externalCalls": 0,
   "storageBeforeLogin": [],
   "storageAfter": [
     "jacsa-demo:v1"
   ],
-  "uniqueShots": 273,
   "saldoC4": {
     "hiladoNegro": "24 g",
     "almaNegra": "12 g"
+  },
+  "tabs": {
+    "cliente": {
+      "video": "raw/cliente.webm",
+      "t0": 1793376688006,
+      "cierreMs": 1793376975200,
+      "durationS": 287.13,
+      "codec": "vp9",
+      "size": "1920x1080",
+      "fps": 30
+    },
+    "rodrigo": {
+      "video": "raw/rodrigo.webm",
+      "t0": 1793376688031,
+      "cierreMs": 1793376975200,
+      "durationS": 305.67,
+      "codec": "vp9",
+      "size": "1920x1080",
+      "fps": 30
+    },
+    "lorena": {
+      "video": "raw/lorena.webm",
+      "t0": 1793376688061,
+      "cierreMs": 1793376975200,
+      "durationS": 287.57,
+      "codec": "vp9",
+      "size": "1920x1080",
+      "fps": 30
+    },
+    "operario": {
+      "video": "raw/operario.webm",
+      "t0": 1793376688123,
+      "cierreMs": 1793376975200,
+      "durationS": 298.07,
+      "codec": "vp9",
+      "size": "1920x1080",
+      "fps": 30
+    }
   },
   "clips": [
     {
       "id": 1,
       "file": "jacsa-60s-1-cliente-solicitud.mp4",
-      "frames": 1800,
-      "segments": [
+      "parts": [
         {
+          "kind": "card",
+          "png": "cards/c1.png",
+          "frames": 90
+        },
+        {
+          "kind": "video",
           "tab": "cliente",
           "route": "portal",
-          "inFrame": 90,
-          "outFrame": 1470
+          "startS": 3,
+          "endS": 60,
+          "inMs": 1793376690617,
+          "outMs": 1793376747618,
+          "frames": 1710,
+          "inS": 2.611
         }
       ],
       "beats": [
         {
           "id": "nueva-solicitud",
           "planS": 7,
-          "realS": 7
+          "realS": 7.001
         },
         {
           "id": "articulo",
           "planS": 9,
-          "realS": 9
+          "realS": 9.001
         },
         {
           "id": "cantidad",
           "planS": 14,
-          "realS": 14
+          "realS": 14.001
         },
         {
           "id": "vista-previa",
           "planS": 19,
-          "realS": 19
+          "realS": 19.001
         },
         {
           "id": "contacto",
           "planS": 29,
-          "realS": 29
+          "realS": 29.001
         },
         {
           "id": "registrar-solicitud",
           "planS": 38,
-          "realS": 38
+          "realS": 38.001
         },
         {
           "id": "volver-portal",
@@ -71,12 +118,12 @@
         {
           "id": "solicitudes-enviadas",
           "planS": 48,
-          "realS": 48
+          "realS": 48.001
         },
         {
           "id": "quieto-salida",
           "planS": 58,
-          "realS": 58
+          "realS": 58.001
         }
       ],
       "checkpoints": {
@@ -88,50 +135,59 @@
     {
       "id": 2,
       "file": "jacsa-60s-2-comercial-pedido.mp4",
-      "frames": 1800,
-      "segments": [
+      "parts": [
         {
+          "kind": "card",
+          "png": "cards/c2.png",
+          "frames": 90
+        },
+        {
+          "kind": "video",
           "tab": "rodrigo",
           "route": "dashboard",
-          "inFrame": 90,
-          "outFrame": 1320
+          "startS": 3,
+          "endS": 60,
+          "inMs": 1793376748706,
+          "outMs": 1793376805707,
+          "frames": 1710,
+          "inS": 60.675
         }
       ],
       "beats": [
         {
           "id": "preparar-cotizacion",
           "planS": 8,
-          "realS": 8
+          "realS": 8.001
         },
         {
           "id": "recargo-vigencia",
           "planS": 10,
-          "realS": 10
+          "realS": 10.001
         },
         {
           "id": "crear-cotizacion",
           "planS": 16,
-          "realS": 16
+          "realS": 16.001
         },
         {
           "id": "enviar-propuesta",
           "planS": 24,
-          "realS": 24
+          "realS": 24.001
         },
         {
           "id": "registrar-aceptacion",
           "planS": 28,
-          "realS": 28
+          "realS": 28.001
         },
         {
           "id": "convertir-pedido",
           "planS": 32,
-          "realS": 32
+          "realS": 32.001
         },
         {
           "id": "nav-pedidos",
           "planS": 37,
-          "realS": 37
+          "realS": 37.001
         },
         {
           "id": "ver-orden",
@@ -141,12 +197,12 @@
         {
           "id": "requerimientos",
           "planS": 43,
-          "realS": 43
+          "realS": 43.001
         },
         {
           "id": "quieto-salida",
           "planS": 58,
-          "realS": 58
+          "realS": 58.001
         }
       ],
       "checkpoints": {
@@ -158,51 +214,70 @@
     {
       "id": 3,
       "file": "jacsa-60s-3-abastecimiento-plan.mp4",
-      "frames": 1800,
-      "segments": [
+      "parts": [
         {
-          "tab": "lorena",
-          "route": "stock",
-          "inFrame": 90,
-          "outFrame": 960
+          "kind": "card",
+          "png": "cards/c3.png",
+          "frames": 90
         },
         {
+          "kind": "video",
+          "tab": "lorena",
+          "route": "stock",
+          "startS": 3,
+          "endS": 39,
+          "inMs": 1793376806826,
+          "outMs": 1793376842827,
+          "frames": 1080,
+          "inS": 118.765
+        },
+        {
+          "kind": "card",
+          "png": "cards/c3-corte.png",
+          "frames": 30
+        },
+        {
+          "kind": "video",
           "tab": "rodrigo",
           "route": "pedidos",
-          "inFrame": 1200,
-          "outFrame": 1546
+          "startS": 40,
+          "endS": 60,
+          "inMs": 1793376843918,
+          "outMs": 1793376863920,
+          "frames": 600,
+          "inS": 155.887
         }
       ],
       "beats": [
         {
           "id": "ingreso-INS-NEGRO",
           "planS": 8,
-          "realS": 8
+          "realS": 8.001
         },
         {
           "id": "ingreso-INS-ALMA",
           "planS": 20,
-          "realS": 20
+          "realS": 20.001
         },
         {
           "id": "movimientos",
           "planS": 31,
-          "realS": 31
+          "realS": 31.001
         },
         {
-          "id": "corte-rodrigo",
-          "planS": 39,
-          "realS": 39
+          "id": "quieto-salida",
+          "planS": 37,
+          "realS": 37
         },
         {
           "id": "ver-orden",
           "planS": 43,
-          "realS": 43
+          "realS": 43.001
         },
         {
           "id": "maquina-prioridad",
           "planS": 45,
-          "realS": 45
+          "realS": 45.001
         },
         {
           "id": "guardar-plan",
@@ -212,7 +287,7 @@
         {
           "id": "quieto-salida",
           "planS": 58,
-          "realS": 58
+          "realS": 58.001
         }
       ],
       "checkpoints": {
@@ -224,30 +299,39 @@
     {
       "id": 4,
       "file": "jacsa-60s-4-operario-produccion.mp4",
-      "frames": 1800,
-      "segments": [
+      "parts": [
         {
+          "kind": "card",
+          "png": "cards/c4.png",
+          "frames": 90
+        },
+        {
+          "kind": "video",
           "tab": "operario",
           "route": "cola",
-          "inFrame": 90,
-          "outFrame": 1470
+          "startS": 3,
+          "endS": 60,
+          "inMs": 1793376864989,
+          "outMs": 1793376921989,
+          "frames": 1710,
+          "inS": 176.866
         }
       ],
       "beats": [
         {
           "id": "ver-orden",
           "planS": 12,
-          "realS": 12
+          "realS": 12.001
         },
         {
           "id": "iniciar-produccion",
           "planS": 15,
-          "realS": 15
+          "realS": 14.999
         },
         {
           "id": "unidades",
           "planS": 21,
-          "realS": 21
+          "realS": 21.001
         },
         {
           "id": "control-calidad",
@@ -267,7 +351,7 @@
         {
           "id": "quieto-salida",
           "planS": 58,
-          "realS": 58
+          "realS": 58.002
         }
       ],
       "checkpoints": {
@@ -279,30 +363,44 @@
     {
       "id": 5,
       "file": "jacsa-60s-5-cliente-seguimiento.mp4",
-      "frames": 1800,
-      "segments": [
+      "parts": [
         {
+          "kind": "card",
+          "png": "cards/c5.png",
+          "frames": 90
+        },
+        {
+          "kind": "video",
           "tab": "cliente",
           "route": "portal",
-          "inFrame": 90,
-          "outFrame": 766
+          "startS": 3,
+          "endS": 54,
+          "inMs": 1793376923109,
+          "outMs": 1793376974109,
+          "frames": 1530,
+          "inS": 235.103
+        },
+        {
+          "kind": "card",
+          "png": "cards/c5-cierre.png",
+          "frames": 180
         }
       ],
       "beats": [
         {
           "id": "mis-pedidos",
           "planS": 10,
-          "realS": 10
+          "realS": 10.001
         },
         {
           "id": "mis-avisos",
           "planS": 24,
-          "realS": 24
+          "realS": 24.001
         },
         {
-          "id": "cierre",
-          "planS": 54,
-          "realS": 54
+          "id": "quieto-salida",
+          "planS": 52,
+          "realS": 52.002
         }
       ],
       "checkpoints": {
