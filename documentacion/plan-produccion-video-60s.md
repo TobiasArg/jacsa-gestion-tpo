@@ -1,8 +1,24 @@
 # Plan de producción del video — 5 clips de 60 s + versión continua de 300 s
 
-**Tipo:** diseño escrito de captura y edición. No implementa código ni graba nada, y no modifica el guion, el storyboard, el ensayo, los Word/Pages, la app, las pruebas ni la evidencia histórica. **Fecha:** 2026-10-30. **Base:** `main` en `9d5b831` («ui(prototipo): depurar textos de demostracion»), rama `TobiasArg/jacsa-video-plan-60s`.
+**Tipo:** diseño escrito de captura y edición. En su versión original no implementaba código ni grababa nada, y no modificaba el guion, el storyboard, el ensayo, los Word/Pages, la app, las pruebas ni la evidencia histórica. **Fecha:** 2026-10-30. **Base:** `main` en `9d5b831` («ui(prototipo): depurar textos de demostracion»), rama `TobiasArg/jacsa-video-plan-60s`.
 
-**Estado:** no existe ningún MP4 ni toma en bruto. Las duraciones de este documento son **especificaciones de montaje** (frames exactos), no mediciones de una grabación. Tampoco hubo ensayo con voz humana.
+**Estado (2026-10-30):** el plan **ya se ejecutó**. Los seis MP4 mudos están producidos y verificados en [`entregables/videos/`](../entregables/videos/); el registro técnico completo (hashes, formato, captura y contenido verificado) es el [cierre de video](cierre-video.md) §0.
+
+| Archivo | Frames | Duración |
+|---|---:|---:|
+| `jacsa-60s-1-cliente-solicitud.mp4` | 1800 | 60,000 s |
+| `jacsa-60s-2-comercial-pedido.mp4` | 1800 | 60,000 s |
+| `jacsa-60s-3-abastecimiento-plan.mp4` | 1800 | 60,000 s |
+| `jacsa-60s-4-operario-produccion.mp4` | 1800 | 60,000 s |
+| `jacsa-60s-5-cliente-seguimiento.mp4` | 1800 | 60,000 s |
+| `jacsa-300s-continuo.mp4` | 9000 | 300,000 s |
+
+- **Formato verificado:** H.264 High@4.1, 1920 × 1080, 30 fps CFR, **0 pistas de audio**; todos los frames decodificados sin errores; `SHA256SUMS` 6/6 OK. El continuo es **idéntico frame a frame** (`framemd5`) a la sucesión de los cinco clips.
+- **Captura real:** pantalla grabada en continuo con `context.recordVideo` de Playwright (WebM VP9 por pestaña), con `prototipo/scripts/video/record-demo-video.mjs`; antes de la corrida final se grabó y revisó una toma de prueba de 10 s (`--sample`, cierre §0.2). **0 llamadas `/api/`** y **0 requests externas**; checkpoints C0 → C4 OK; desfase máximo por beat de 0,002 s.
+- **Guion vigente:** [`guion-presentacion.md`](guion-presentacion.md), **401 palabras**; B1 ya dice «autoriza el registro de sus datos y registra la solicitud» y el cierre es «JACSA Gestión · Prototipo funcional».
+- **Pendientes reales:** la reproducción humana completa de los seis MP4 a velocidad normal y la locución por las cinco personas (Persona1–Persona5), en vivo o grabada. No hubo ensayo con voz humana.
+
+Las duraciones de §5–§7 son las **especificaciones de montaje** del diseño (frames exactos) y la grabación las cumplió; los tiempos de voz siguen siendo estimaciones, no mediciones. Las secciones marcadas **(histórico)** describen recomendaciones o prerrequisitos previos a la producción y se conservan como antecedente.
 
 **Fuentes leídas:** [`guion-presentacion.md`](guion-presentacion.md), [`diseno-video-5min.md`](diseno-video-5min.md), [`storyboard-video.md`](storyboard-video.md), [`ensayo-video.md`](ensayo-video.md), [`despliegue-vercel.md`](despliegue-vercel.md), `prototipo/tests/browser-demo/demo.spec.ts`, `prototipo/playwright.demo.config.ts`, `prototipo/vite.config.ts`, `prototipo/package-lock.json` y la UI de `prototipo/src` (`App.tsx`, `Portal.tsx`, `PublicQuote.tsx`, `Quotes.tsx`, `Orders.tsx`, `Stock.tsx`, `demo/store.mjs`). No se reutiliza material de las ramas antiguas `jacsa-video-diseno` ni `jacsa-video-entrega`.
 
@@ -21,11 +37,11 @@
 | `jacsa-60s-5-cliente-seguimiento.mp4` | Cliente Alfa ve su pedido y sus avisos, con cierre (C4 → C4) | 60,000 s | 1800 |
 | `jacsa-300s-continuo.mp4` | Los cinco clips en orden, unidos sin recodificar | 300,000 s | 9000 |
 | `SHA256SUMS` | Sumas SHA-256 de los seis MP4 | — | — |
-| `verificacion-video.txt` | Resultado de los controles de §9 (salida de `ffprobe` resumida) | — | — |
+| `verificacion-video.txt` | Resultado de los controles de §9 (generado por el script de grabación: parser MP4 propio y decodificación con `framemd5`) | — | — |
 
 Los seis MP4 son **mudos**: no llevan pista de audio, ni siquiera una silenciosa, ni voz ni música. La locución se hace después, en vivo o grabada por personas, sobre estos videos. Los productos intermedios (tomas en bruto, rótulos, hojas de contacto, logs) van a un directorio de trabajo **fuera del repositorio** (§7.1) y nunca a `evidencias/`.
 
-**Versionado de los MP4:** el tamaño estimado es de 5 a 20 MB por clip y del doble para el continuo, sin medir todavía. Si se versionan en Git o se entregan por otro canal lo decide el coordinador cuando existan. Este plan no cambia `.gitignore`.
+**Versionado de los MP4:** el diseño estimaba de 5 a 20 MB por clip (histórico). Medido: los clips pesan entre 5.128.781 y 6.020.567 B, el continuo 27.550.225 B y el conjunto 55.097.438 B (52,55 MiB). Se versionan en commits locales de Git, sin push; no se cambió `.gitignore`.
 
 ### 1.2 Qué cambia respecto de 5 × 58 s
 
@@ -36,7 +52,7 @@ Los seis MP4 son **mudos**: no llevan pista de audio, ni siquiera una silenciosa
 | Botón «Enviar solicitud» y casilla «Autorizo el uso de estos datos…». | La UI de `9d5b831` dice **«Registrar solicitud»** y **«Autorizo el registro de estos datos para la solicitud.»**; tras registrar aparece «… registrada … No se notificó al equipo comercial.». |
 | Cierre «Prototipo académico local · datos sintéticos · …». | La UI usa solo «Prototipo funcional» y no muestra textos académicos (`obsoleteDemoCopy` en `demo.spec.ts`). El cierre pasa a ser «JACSA Gestión · Prototipo funcional» con «Los avisos quedan registrados; no se envían correos ni mensajes.» (§5). |
 
-**Nota para la locución (no modifica el guion):** los textos LOC-B1…B5 de [`guion-presentacion.md`](guion-presentacion.md) siguen siendo la referencia (400 palabras, unos 32–37 s de voz por clip a 130–150 ppm supuestas). Hay dos detalles que quien locute debería ajustar al vivo y que T6 o el equipo deberían incorporar al guion: en B1, «acepta el uso de sus datos y envía» debería ser «autoriza el registro de sus datos y registra la solicitud»; y el rótulo final del guion todavía dice «académico» / «datos sintéticos», cuando el video usa el cierre de §5.
+**Nota para la locución:** los textos LOC-B1…B5 de [`guion-presentacion.md`](guion-presentacion.md) son la referencia vigente: **401 palabras**, unos 31–40 s de voz por clip a 130–150 ppm supuestas. Los ajustes que este plan detectó ya están incorporados: B1 dice «autoriza el registro de sus datos y registra la solicitud» y el cierre es «JACSA Gestión · Prototipo funcional» con «Los avisos quedan registrados; no se envían correos ni mensajes.».
 
 ---
 
@@ -65,7 +81,9 @@ Todo es dato del seed de la demo (`src/demo/seed.mjs`), con cuentas `cliente`, `
 | Datos | Solo el seed. Nada de perfiles reales, datos reales, cookies del usuario ni el despliegue público de Vercel (su `localStorage` es del navegador del visitante). |
 | No ejecutar | `tests/e2e/rehearsal.spec.ts` (sobrescribe `evidencias/qa-final/rehearsal/`), resets de la demo, ni nada sobre `data/*.sqlite`. |
 
-### 3.2 Prerrequisitos verificados el 2026-10-30 en este worktree
+**Ejecución real:** se mantuvo el aislamiento, con dos diferencias respecto de esta tabla. La app se sirvió con un servidor estático Node propio del script en `127.0.0.1` con **puerto efímero** (solo `dist/`, sin proxy) en lugar de `vite preview` en 4291, y el WebM de Playwright salió en VP9. Resultado: 0 llamadas `/api/` y 0 requests externas (cierre §0.4).
+
+### 3.2 Prerrequisitos verificados el 2026-10-30 en este worktree (histórico, antes de la producción)
 
 | Comprobación | Resultado |
 |---|---|
@@ -81,11 +99,13 @@ Todo es dato del seed de la demo (`src/demo/seed.mjs`), con cuentas `cliente`, `
 
 **Bloqueante 2 (encoder):** ver §4. Sin ffmpeg y ffprobe no se pueden producir ni verificar los MP4.
 
+**Resolución:** ambos bloqueantes quedaron resueltos antes de grabar. `prototipo/node_modules` se tomó como clon APFS del de `main` (mismo `package-lock.json`, `@playwright/test` 1.64.1, ignorado por Git), sin instalar nada global; el encoder es el descrito al final de §4. Detalle en el cierre §0.6.
+
 ---
 
-## 4. Encoder: ffmpeg/ffprobe portables, de alcance local
+## 4. Encoder: ffmpeg/ffprobe portables, de alcance local (recomendación inicial, histórico)
 
-**Recomendación:** usar un par **estático** `ffmpeg` + `ffprobe` (versión 6.0 o posterior, con `libx264`) para macOS, ubicado en una carpeta del usuario **fuera del repo y fuera de `PATH`**, e invocarlo siempre por ruta absoluta. Así no hay Homebrew, ni `sudo`, ni cambios en `/usr/local`, ni en `PATH` o el perfil del shell, ni en las dependencias del repo.
+**Recomendación inicial:** usar un par **estático** `ffmpeg` + `ffprobe` (versión 6.0 o posterior, con `libx264`) para macOS, ubicado en una carpeta del usuario **fuera del repo y fuera de `PATH`**, e invocarlo siempre por ruta absoluta. Así no hay Homebrew, ni `sudo`, ni cambios en `/usr/local`, ni en `PATH` o el perfil del shell, ni en las dependencias del repo.
 
 - **Ubicación:** `$HOME/.cache/jacsa-video-tools/ffmpeg-<versión>/` con los binarios `ffmpeg` y `ffprobe`. Es reversible: alcanza con borrar la carpeta.
 - **Origen:** un build estático para macOS enlazado desde la página oficial de descargas de ffmpeg.org (sección macOS → *static builds*). Se prefiere `arm64` nativo; un build `x86_64` corre bajo Rosetta, más lento. Descargar el ejecutable implica red y ejecutar un binario de terceros: **requiere la autorización del coordinador o del usuario** antes de hacerlo.
@@ -104,6 +124,8 @@ export FF="$TOOLS/ffmpeg" FP="$TOOLS/ffprobe"
 command -v ffmpeg ffprobe || echo "PATH sin cambios (esperado: no encontrados)"
 ```
 
+**Encoder usado (aprobado por el coordinador):** `ffmpeg` 6.0 estático arm64 del paquete npm `ffmpeg-static` 5.3.0 (asset `ffmpeg-darwin-arm64` del release `b6.1.1`), ya presente en otro proyecto local, invocado por ruta absoluta (`JACSA_FFMPEG`) sin cambiar `PATH`. SHA-256 `a90e3db6a3fd35f6074b013f948b1aa45b31c6375489d39e572bea3f18336584`, igual al digest publicado. En la entrega final la verificación no usó `ffprobe`: la hace el parser MP4 del script más la decodificación completa con `framemd5` (cierre §0.3 y §0.6). No queda ninguna autorización pendiente.
+
 ---
 
 ## 5. Especificación técnica de los MP4
@@ -119,7 +141,7 @@ command -v ffmpeg ffprobe || echo "PATH sin cambios (esperado: no encontrados)"
 | Color | `yuv420p`, BT.709 (primaries, trc y matrix), rango limitado (`tv`) |
 | GOP | Fijo: IDR cada 60 frames (2 s), `-sc_threshold 0`, GOP cerrado y 2 B-frames. Cada clip empieza en IDR, lo que permite la concatenación sin recodificar |
 | Calidad | `-preset slow -crf 18`, con techo `-maxrate 12M -bufsize 24M` |
-| Origen de la toma | WebM VP8 de Playwright (su frecuencia se mide con `ffprobe` y no se supone); se normaliza a 30 fps con el filtro `fps` |
+| Origen de la toma | WebM de Playwright (en la corrida real, VP9 1920 × 1080 a 30 fps); se normaliza a 30 fps con el filtro `fps` |
 
 Parámetros x264 comunes, en un array de bash para reutilizar en §7:
 
@@ -240,7 +262,7 @@ En este clip solo aparece el portal del cliente: no se muestra la Bandeja de avi
 
 ## 7. Pipeline de captura y edición (comandos reproducibles)
 
-Todos los bloques son **bash** (`bash -euo pipefail`), porque el shell del usuario es zsh y los arrays se comportan distinto. Se ejecutan desde la raíz del worktree. Este documento no ejecutó ninguno.
+Todos los bloques son **bash** (`bash -euo pipefail`), porque el shell del usuario es zsh y los arrays se comportan distinto. Se ejecutan desde la raíz del worktree. Son el pipeline de diseño: la producción real lo implementó en `prototipo/scripts/video/record-demo-video.mjs`, con los comandos reproducibles del [cierre](cierre-video.md) §0.4 (`--sample`, corrida completa y `--verify-only`). Donde el script difiere (servidor estático con puerto efímero, verificación sin `ffprobe`), manda el cierre.
 
 ### 7.1 Variables y directorios
 
@@ -273,9 +295,9 @@ Al terminar: `kill "$(cat "$WORK/preview.pid")"`. Solo se detiene ese PID, que e
 
 Las tarjetas son HTML estático en `$WORK/cards/*.html` (fondo oscuro de la marca, tipografía del sistema, texto centrado de 64 px para el título y 36 px para el subtítulo). Se renderizan a PNG de 1920 × 1080 con el mismo Chromium de Playwright, en un contexto aparte sin almacenamiento. No tocan la app. Son siete: `c1.png`…`c5.png` (rótulos de entrada, con los textos de §6), `c3-corte.png` («Rodrigo · planificación») y `c5-cierre.png` (cierre de §6.6). Ningún texto incluye «académico», «datos sintéticos», «ficticios», IDs ni fechas.
 
-### 7.4 Contrato del script de captura (a implementar en una etapa posterior)
+### 7.4 Contrato del script de captura (implementado)
 
-El script es un módulo Node independiente: **no** es un spec de `tests/` ni se agrega a ningún `playwright.config`. Se versiona, si el coordinador lo aprueba, en `scripts/video/captura-60s.mjs`, en un commit propio, y resuelve `@playwright/test` con `createRequire("$PROTO/package.json")`. Lo que debe hacer:
+El script es un módulo Node independiente: **no** es un spec de `tests/` ni se agrega a ningún `playwright.config`. Quedó implementado como `prototipo/scripts/video/record-demo-video.mjs` (el diseño proponía `scripts/video/captura-60s.mjs`), y resuelve `@playwright/test` con `createRequire("$PROTO/package.json")`. Lo que debe hacer:
 
 1. Lanzar `chromium` headless y crear **un** `newContext({ viewport: 1920×1080, deviceScaleFactor: 1, recordVideo: { dir: "$WORK/raw", size: 1920×1080 } })` sin `storageState`. Instalar el bloqueo de `/api/` y contar las llamadas, que tienen que ser cero.
 2. Abrir cuatro pestañas (`cliente`, `rodrigo`, `lorena`, `operario`) y registrar `t0` (`Date.now()`) apenas se crea cada una. En la primera, antes de cualquier login, verificar que `localStorage` no tiene `jacsa-demo:v1` (C0). Hacer los logins fuera de cámara con la contraseña del seed demo (la de `demo.spec.ts`; no se imprime en logs). Comprobar el pie «PROTOTIPO FUNCIONAL» y que ninguna pantalla coincide con `obsoleteDemoCopy`.
@@ -400,6 +422,8 @@ Los selectores del script deben ser los mismos de `demo.spec.ts` (por rol y por 
 
 Los resultados van a `$WORK/qc/` y el resumen a `verificacion-video.txt`. **Cualquier fallo bloquea la publicación** de §7.7.
 
+**Resultado:** §9.1 y §9.2 pasaron en los seis archivos (ver el estado de la portada y el [cierre](cierre-video.md) §0.3), con el parser MP4 del script en lugar de `ffprobe`. De §9.3 se hicieron las hojas de contacto, los recortes al 100 % y la revisión de la toma de prueba de 10 s; **falta la reproducción humana completa de cada MP4 a velocidad normal**.
+
 ### 9.1 Formato, duración, frames y ausencia de audio
 
 ```bash
@@ -453,8 +477,8 @@ cmp ../qc/clips.md5 ../qc/continuo.md5 && echo "continuo == clips 1..5"
 
 | Riesgo | Mitigación |
 |---|---|
-| No hay ffmpeg/ffprobe y la descarga no se autoriza | Sin ellos no se pueden cumplir H.264/MP4 ni la verificación. Se escala al coordinador y no se usan sustitutos globales. `avconvert` no cumple frames exactos ni lee WebM. |
-| `node_modules` ausente | Ver el bloqueante 1 de §3.2. Sin `npm ci` autorizado o un worktree preparado, no hay captura. |
+| (Resuelto) No hay ffmpeg/ffprobe y la descarga no se autoriza | Sin ellos no se pueden cumplir H.264/MP4 ni la verificación. Se escala al coordinador y no se usan sustitutos globales. `avconvert` no cumple frames exactos ni lee WebM. |
+| (Resuelto) `node_modules` ausente | Ver el bloqueante 1 de §3.2. Sin `npm ci` autorizado o un worktree preparado, no hay captura. |
 | El WebM de Playwright (VP8, bitrate moderado) se ve borroso | Control de legibilidad de §9.3. Si falla, la ruta B es capturar por CDP `Page.startScreencast` en PNG con timestamps y armar la secuencia a 30 fps con ffmpeg. Otra opción es un viewport de 1536 × 864 escalado 1,25×. Ninguna de las dos toca la app. |
 | La toma de origen no es de 30 fps (por ejemplo, 25) | El filtro `fps=30` duplica frames de forma regular. En scrolls puede haber un leve temblor, que se acepta para UI. Los scrolls son lentos y cortos. |
 | Desfase entre `Date.now()` y el tiempo del WebM | Corrección `δ` (§7.5), quietos de 1 s o más en los bordes y `tpad` para completar. Tolerancia de ±0,5 s por beat. |
@@ -463,8 +487,8 @@ cmp ../qc/clips.md5 ../qc/continuo.md5 && echo "continuo == clips 1..5"
 | Colisión de puertos o procesos ajenos | `--strictPort` y `lsof` previo; nunca se mata un proceso que no lanzó este procedimiento. |
 | Fechas y horas de la corrida en pantalla (avisos, fecha prevista) | Se aceptan. No se fijan en rótulos. La reproducibilidad es de procedimiento y de frames de cada corrida, no bit a bit entre corridas. |
 | Falla `concat -c copy` | Se recodifica con el filtro `concat` y los mismos `X264`; la comparación `framemd5` se cambia por SSIM por tramo de 0,99 o más (`-lavfi ssim`) entre cada clip y su rango del continuo. |
-| Los MP4 pesan para Git | La decisión de §1.1 es del coordinador. `SHA256SUMS` identifica la versión entregada. |
-| La locución difiere de la UI actual | Nota de §1.2. Los cues de §6 mandan sobre el texto del guion mientras T6 no lo actualice. |
+| Los MP4 pesan para Git | Resuelto: 52,55 MiB en total, versionados en commits locales (§1.1). `SHA256SUMS` identifica la versión entregada. |
+| La locución difiere de la UI actual | Resuelto: el guion vigente (401 palabras) ya usa el texto de la UI de `9d5b831` (nota de §1.2). |
 | Sobrescribir evidencia o entregables previos | La salida va primero a `$WORK/stage`; se respalda `entregables/videos/` antes de copiar; nunca se escribe en `evidencias/` ni se corre `rehearsal.spec.ts`. |
 
 ---
@@ -475,12 +499,13 @@ cmp ../qc/clips.md5 ../qc/continuo.md5 && echo "continuo == clips 1..5"
 - **Retoma solo de edición** (rótulo con un error, ajuste de `IN`, fundido): se reutilizan los `raw/*.webm` y `marcas.json` de la misma corrida, se regenera `stage/` y se repite §9 completo, incluido el continuo.
 - **Rollback de entregables:** antes de copiar se respalda en `$WORK/backup/`; para volver atrás, se restaura desde ahí. Si los MP4 se versionan, van en un commit propio (por ejemplo, `docs(video): entregar clips 60s y continuo 300s`) y se revierten con `git revert <commit>`, sin reescribir la historia.
 - **Rollback del entorno:** se detiene solo el PID de `vite preview` guardado en `$WORK/preview.pid`. `dist/` y `node_modules/` están ignorados por Git. Para quitar el encoder basta con borrar `$HOME/.cache/jacsa-video-tools/`, porque no cambió `PATH`. Se borra `$WORK` cuando ya no haga falta. Al final, `git status --porcelain` debe mostrar como mucho `entregables/videos/`.
-- **Este documento** es un único archivo nuevo en su propio commit, y se revierte con `git revert`.
+- **Este documento** se creó en su propio commit y se revierte con `git revert`. El rollback del entorno de arriba describe el diseño con `vite preview`; el script real no deja servidores en ejecución.
 
 ## 12. Fuera de alcance y pendientes
 
-- Implementar `scripts/video/captura-60s.mjs` y las plantillas de rótulos (etapa posterior, con commit propio).
-- Las autorizaciones de `npm ci` (o el uso de un worktree preparado) y de la descarga del ffmpeg/ffprobe portable.
-- Ejecutar la captura, editar, correr la QA de §9 y decidir el versionado de los MP4.
-- Actualizar el guion, el storyboard y los Word/Pages a 60/300 s y a los textos de `9d5b831` (T6 o el equipo; este trabajo no los toca).
-- La locución humana, en vivo o grabada, y su ensayo con cronómetro sobre los clips mudos.
+**Hecho (histórico de este plan):** el script de captura y los rótulos, la resolución de dependencias y encoder, la captura, el montaje, los controles automáticos de §9, el versionado local de los MP4 y la actualización del guion, el storyboard y el Word del guion a 60/300 s y a los textos de `9d5b831`.
+
+**Pendientes reales:**
+
+- La reproducción humana completa de los seis MP4 a velocidad normal (§9.3).
+- La locución humana por Persona1–Persona5, en vivo o grabada, y su ensayo con cronómetro sobre los clips mudos.
