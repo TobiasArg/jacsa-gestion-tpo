@@ -11,7 +11,7 @@ La captura no se hace a mano ni sobre la demo habitual. Según el [plan de produ
 3. Hay una pestaña por rol (`cliente`, `rodrigo`, `lorena`, `operario`) con login fuera de cámara. Las cinco tomas salen de una sola corrida, en orden C0 → C4.
 4. El montaje produce `jacsa-60s-1…5-*.mp4` (1800 frames cada uno) y `jacsa-300s-continuo.mp4` (9000 frames), todos sin pista de audio.
 
-Las autorizaciones pendientes (instalar dependencias con `npm ci` y descargar un ffmpeg/ffprobe portable) son del coordinador; este documento no las da por otorgadas. No ejecutar `tests/e2e/rehearsal.spec.ts`, que sobrescribe la evidencia histórica.
+La coordinación ya autorizó un `npm ci` aislado en `prototipo/` y el uso de los binarios ffmpeg/ffprobe b6.1.1 verificados, solo para la producción local de estos videos: no se instalan globalmente ni se modifica `PATH`. Sigue pendiente ejecutar la captura, montar los clips y pasar los controles de calidad; hasta entonces no existe ningún MP4, y los que se produzcan seguirán sin voz ni música. No ejecutar `tests/e2e/rehearsal.spec.ts`, que sobrescribe la evidencia histórica.
 
 ## 2. Secuencia C0–C4 que deben mostrar los clips
 
@@ -64,4 +64,4 @@ Reparto fijo, una persona por clip:
 
 ## 6. Evidencia y pendientes
 
-La QA final y la QA del build `browser-demo` comprobaron el flujo con pruebas automatizadas; sus tiempos y capturas no son tiempos de video ni prueban que una persona leyó el guion. Pendiente: autorizar dependencias y encoder, capturar y montar los clips, correr los controles del plan, ensayar las cinco voces sobre los clips mudos y, si se elige, grabar cada locución.
+La QA final y la QA del build `browser-demo` comprobaron el flujo con pruebas automatizadas; sus tiempos y capturas no son tiempos de video ni prueban que una persona leyó el guion. Las dependencias (`npm ci` aislado) y el encoder (ffmpeg/ffprobe b6.1.1 verificados, de uso local y sin cambios en `PATH`) ya están autorizados. Pendiente: ejecutar la captura, montar los clips mudos, pasar los controles de calidad del plan, ensayar las cinco voces sobre los clips mudos y, si se elige, grabar cada locución.
