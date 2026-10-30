@@ -1,0 +1,2043 @@
+{
+  "schemaVersion": 1,
+  "scenario": "Cinco clips B1-B5 del diseno-video-5min.md; flujo UI automatizado sobre la base temporal del launcher.",
+  "execution": {
+    "startedAt": "2026-10-30T00:58:10.358Z",
+    "generatedAt": "2026-10-30T00:58:16.960Z",
+    "playwrightStatus": "passed",
+    "automationElapsedMs": 6601.734583,
+    "elapsedTimeMeaning": "Tiempo de ejecución de Playwright, no ensayo humano, no duración de video y no duración de voz.",
+    "cleanupErrors": []
+  },
+  "reset": {
+    "method": "POST /api/demo/reset",
+    "authorization": "Sesión manager rodrigo creada por API; confirmación REINICIAR DEMO; base demo temporal del launcher.",
+    "databaseAccess": "Solo endpoints normales; sin SQL ni acceso directo a SQLite."
+  },
+  "editorialProposal": {
+    "source": "/Users/argtobias/Documents/TPO - SISINFO/documentacion/diseno-video-5min.md",
+    "status": "Propuesta editorial aceptada; presupuestos de diseño, no mediciones ni ensayo humano.",
+    "extraIntro": false,
+    "extraOutro": false,
+    "totalEditorialBudgetSeconds": 290,
+    "clipBudgetIncludes": [
+      "rótulo de entrada",
+      "acción y voz",
+      "salida/transición o cierre"
+    ],
+    "spokenWordCounts": {
+      "B1": 84,
+      "B2": 82,
+      "B3": 78,
+      "B4": 86,
+      "B5": 83,
+      "total": 413
+    },
+    "note": "No hay afirmación de voz, duración observada, duración de video ensayada ni aprobación humana. El rótulo, la transición y el cierre están dentro de cada clip de 58 s.",
+    "blocks": [
+      {
+        "blockId": "B1",
+        "checkpointEntry": "C0",
+        "checkpointExit": "C1",
+        "clip": 1,
+        "title": "El cliente configura su solicitud",
+        "entry": "Cliente Alfa con sesión iniciada en Mi portal; Solicitudes enviadas vacío.",
+        "entryTitle": "1 · Cliente Alfa pide una cotización — portal sin solicitudes",
+        "action": "Nueva solicitud → ART-001 → 2 gruesas → vista previa → teléfono y consentimiento → enviar → volver a Mi portal.",
+        "result": "Solicitud ART-001 · 2 gruesas · 288 unidades, Nueva; vista previa 21.600 / 4.536 / 26.136 ARS.",
+        "closure": "Salida/transición de 2 s dentro del clip.",
+        "timingSeconds": {
+          "entryLabel": 3,
+          "actionAndVoice": 53,
+          "exit": 2,
+          "total": 58
+        },
+        "spokenWords": 84
+      },
+      {
+        "blockId": "B2",
+        "checkpointEntry": "C1",
+        "checkpointExit": "C2",
+        "clip": 2,
+        "title": "El comercial lleva la cotización a pedido",
+        "entry": "Rodrigo en Resumen con la solicitud Nueva de Cliente Alfa: ART-001, 2 gruesas.",
+        "entryTitle": "2 · Comercial: cotización y pedido — solicitud Nueva de Cliente Alfa",
+        "action": "Crear con 25 % de recargo y 7 días; enviar propuesta, aceptar, convertir; abrir Pedidos y Ver orden.",
+        "result": "Pedido Pendiente; reserva 400/200 g; faltan 176/88 g.",
+        "closure": "Salida/transición de 2 s dentro del clip; no se muestra el portal del cliente.",
+        "timingSeconds": {
+          "entryLabel": 3,
+          "actionAndVoice": 53,
+          "exit": 2,
+          "total": 58
+        },
+        "spokenWords": 82
+      },
+      {
+        "blockId": "B3",
+        "checkpointEntry": "C2",
+        "checkpointExit": "C3",
+        "clip": 3,
+        "title": "Abastecimiento y plan",
+        "entry": "Lorena en Stock e insumos; faltantes 176 g de hilado y 88 g de alma.",
+        "entryTitle": "3 · Abastecimiento y plan — pedido con faltantes de 176 g y 88 g",
+        "action": "Lorena ingresa 200 g INS-NEGRO y 100 g INS-ALMA; minicorte a Rodrigo para planificar M-04, prioridad 1.",
+        "result": "Faltantes cero, Disponibilidad cubierta y dos movimientos; Rodrigo guarda M-04 / prioridad 1 con reserva completa.",
+        "closure": "Microrrótulo Rodrigo · planificación de 1 s dentro de la ventana de acción; salida de 2 s.",
+        "timingSeconds": {
+          "entryLabel": 3,
+          "actionAndVoice": 53,
+          "exit": 2,
+          "total": 58
+        },
+        "spokenWords": 78
+      },
+      {
+        "blockId": "B4",
+        "checkpointEntry": "C3",
+        "checkpointExit": "C4",
+        "clip": 4,
+        "title": "El operario produce y controla",
+        "entry": "Operario en Cola de producción; Máquina 04 libre, pedido ART-001 de 288, Pendiente y con reserva completa.",
+        "entryTitle": "4 · Operario: producción y control — Máquina 04, reserva completa, stock 600 g / 300 g",
+        "action": "Solo operario: abrir orden, iniciar, acumular 288 unidades, registrar QC aprobado y guardar.",
+        "result": "Pedido Listo, Calidad verificada; consumo registrado de 576 g y 288 g; saldo 24/12 g.",
+        "closure": "Salida/transición de 2 s dentro del clip. QC es un registro del operario, no medición automática.",
+        "timingSeconds": {
+          "entryLabel": 3,
+          "actionAndVoice": 53,
+          "exit": 2,
+          "total": 58
+        },
+        "spokenWords": 86
+      },
+      {
+        "blockId": "B5",
+        "checkpointEntry": "C4",
+        "checkpointExit": "C4",
+        "clip": 5,
+        "title": "El cliente sigue su pedido y sus avisos",
+        "entry": "Cliente Alfa con sesión en Mi portal; su pedido ART-001 ya está Listo.",
+        "entryTitle": "5 · Cliente Alfa: seguimiento y avisos — pedido terminado",
+        "action": "Solo portal del cliente: revisar pedido Listo, 288/288, 100 %, Calidad verificada; desplazarse a Mis avisos.",
+        "result": "Avisos del pedido visibles como Registrada; sin afirmar envío externo ni mostrar bandeja interna.",
+        "closure": "Cierre de 6 s dentro del clip: Prototipo académico local · datos sintéticos · avisos registrados, sin envíos externos.",
+        "timingSeconds": {
+          "entryLabel": 3,
+          "actionAndVoice": 49,
+          "exitAndClosure": 6,
+          "total": 58
+        },
+        "spokenWords": 83
+      }
+    ]
+  },
+  "preparationApi": [
+    {
+      "kind": "preparacion-api",
+      "action": "Autenticar rodrigo para el contexto aislado",
+      "method": "POST",
+      "path": "/api/login",
+      "username": "rodrigo",
+      "status": 200,
+      "startedAt": "2026-10-30T00:58:10.362Z",
+      "endedAt": "2026-10-30T00:58:10.385Z",
+      "elapsedMs": 23.115083,
+      "outcome": "completada"
+    },
+    {
+      "kind": "preparacion-api",
+      "action": "Reiniciar la demo temporal autorizada por el harness",
+      "method": "POST",
+      "path": "/api/demo/reset",
+      "username": "rodrigo",
+      "status": 200,
+      "startedAt": "2026-10-30T00:58:10.385Z",
+      "endedAt": "2026-10-30T00:58:10.387Z",
+      "elapsedMs": 1.871833,
+      "outcome": "completada"
+    },
+    {
+      "kind": "preparacion-api",
+      "action": "Autenticar cliente para el contexto aislado",
+      "method": "POST",
+      "path": "/api/login",
+      "username": "cliente",
+      "status": 200,
+      "startedAt": "2026-10-30T00:58:10.457Z",
+      "endedAt": "2026-10-30T00:58:10.483Z",
+      "elapsedMs": 25.744,
+      "outcome": "completada"
+    },
+    {
+      "kind": "preparacion-api",
+      "action": "Autenticar lorena para el contexto aislado",
+      "method": "POST",
+      "path": "/api/login",
+      "username": "lorena",
+      "status": 200,
+      "startedAt": "2026-10-30T00:58:13.209Z",
+      "endedAt": "2026-10-30T00:58:13.234Z",
+      "elapsedMs": 24.947208,
+      "outcome": "completada"
+    },
+    {
+      "kind": "preparacion-api",
+      "action": "Autenticar operario para el contexto aislado",
+      "method": "POST",
+      "path": "/api/login",
+      "username": "operario",
+      "status": 200,
+      "startedAt": "2026-10-30T00:58:15.133Z",
+      "endedAt": "2026-10-30T00:58:15.159Z",
+      "elapsedMs": 25.617833,
+      "outcome": "completada"
+    }
+  ],
+  "apiObservations": [
+    {
+      "kind": "lectura-api",
+      "action": "Verificar el estado semilla tras el reset API",
+      "method": "GET",
+      "path": "/api/bootstrap",
+      "username": "rodrigo",
+      "status": 200,
+      "startedAt": "2026-10-30T00:58:10.387Z",
+      "endedAt": "2026-10-30T00:58:10.388Z",
+      "elapsedMs": 1.414334,
+      "outcome": "completada"
+    },
+    {
+      "kind": "lectura-api",
+      "action": "Snapshot B1-C0-entrada",
+      "method": "GET",
+      "path": "/api/bootstrap",
+      "username": "rodrigo",
+      "status": 200,
+      "startedAt": "2026-10-30T00:58:10.559Z",
+      "endedAt": "2026-10-30T00:58:10.561Z",
+      "elapsedMs": 2.14575,
+      "outcome": "completada"
+    },
+    {
+      "kind": "lectura-api",
+      "action": "Snapshot B1-C1-salida",
+      "method": "GET",
+      "path": "/api/bootstrap",
+      "username": "rodrigo",
+      "status": 200,
+      "startedAt": "2026-10-30T00:58:11.429Z",
+      "endedAt": "2026-10-30T00:58:11.431Z",
+      "elapsedMs": 2.133125,
+      "outcome": "completada"
+    },
+    {
+      "kind": "lectura-api",
+      "action": "Snapshot B2-C1-entrada",
+      "method": "GET",
+      "path": "/api/bootstrap",
+      "username": "rodrigo",
+      "status": 200,
+      "startedAt": "2026-10-30T00:58:11.669Z",
+      "endedAt": "2026-10-30T00:58:11.672Z",
+      "elapsedMs": 2.387583,
+      "outcome": "completada"
+    },
+    {
+      "kind": "lectura-api",
+      "action": "Identificar la cotización creada en el snapshot del manager",
+      "method": "GET",
+      "path": "/api/bootstrap",
+      "username": "rodrigo",
+      "status": 200,
+      "startedAt": "2026-10-30T00:58:12.752Z",
+      "endedAt": "2026-10-30T00:58:12.757Z",
+      "elapsedMs": 5.24875,
+      "outcome": "completada"
+    },
+    {
+      "kind": "lectura-api",
+      "action": "Identificar pedido y faltantes después de convertir la cotización",
+      "method": "GET",
+      "path": "/api/bootstrap",
+      "username": "rodrigo",
+      "status": 200,
+      "startedAt": "2026-10-30T00:58:12.957Z",
+      "endedAt": "2026-10-30T00:58:12.959Z",
+      "elapsedMs": 2.008875,
+      "outcome": "completada"
+    },
+    {
+      "kind": "lectura-api",
+      "action": "Snapshot B2-C2-salida",
+      "method": "GET",
+      "path": "/api/bootstrap",
+      "username": "rodrigo",
+      "status": 200,
+      "startedAt": "2026-10-30T00:58:13.054Z",
+      "endedAt": "2026-10-30T00:58:13.056Z",
+      "elapsedMs": 1.794708,
+      "outcome": "completada"
+    },
+    {
+      "kind": "lectura-api",
+      "action": "Snapshot B3-C2-entrada",
+      "method": "GET",
+      "path": "/api/bootstrap",
+      "username": "rodrigo",
+      "status": 200,
+      "startedAt": "2026-10-30T00:58:13.330Z",
+      "endedAt": "2026-10-30T00:58:13.333Z",
+      "elapsedMs": 2.735958,
+      "outcome": "completada"
+    },
+    {
+      "kind": "lectura-api",
+      "action": "Verificar reservas y stocks después de los ingresos",
+      "method": "GET",
+      "path": "/api/bootstrap",
+      "username": "rodrigo",
+      "status": 200,
+      "startedAt": "2026-10-30T00:58:13.643Z",
+      "endedAt": "2026-10-30T00:58:13.648Z",
+      "elapsedMs": 5.154625,
+      "outcome": "completada"
+    },
+    {
+      "kind": "lectura-api",
+      "action": "Verificar el plan de máquina y prioridad antes del clip de producción",
+      "method": "GET",
+      "path": "/api/bootstrap",
+      "username": "rodrigo",
+      "status": 200,
+      "startedAt": "2026-10-30T00:58:14.958Z",
+      "endedAt": "2026-10-30T00:58:14.960Z",
+      "elapsedMs": 1.709292,
+      "outcome": "completada"
+    },
+    {
+      "kind": "lectura-api",
+      "action": "Snapshot B3-C3-salida",
+      "method": "GET",
+      "path": "/api/bootstrap",
+      "username": "rodrigo",
+      "status": 200,
+      "startedAt": "2026-10-30T00:58:14.963Z",
+      "endedAt": "2026-10-30T00:58:14.965Z",
+      "elapsedMs": 2.573417,
+      "outcome": "completada"
+    },
+    {
+      "kind": "lectura-api",
+      "action": "Snapshot B4-C3-entrada",
+      "method": "GET",
+      "path": "/api/bootstrap",
+      "username": "rodrigo",
+      "status": 200,
+      "startedAt": "2026-10-30T00:58:15.287Z",
+      "endedAt": "2026-10-30T00:58:15.289Z",
+      "elapsedMs": 2.071667,
+      "outcome": "completada"
+    },
+    {
+      "kind": "lectura-api",
+      "action": "Verificar producción, QC y saldo físico final",
+      "method": "GET",
+      "path": "/api/bootstrap",
+      "username": "rodrigo",
+      "status": 200,
+      "startedAt": "2026-10-30T00:58:16.050Z",
+      "endedAt": "2026-10-30T00:58:16.054Z",
+      "elapsedMs": 4.06625,
+      "outcome": "completada"
+    },
+    {
+      "kind": "lectura-api",
+      "action": "Snapshot B4-C4-salida",
+      "method": "GET",
+      "path": "/api/bootstrap",
+      "username": "rodrigo",
+      "status": 200,
+      "startedAt": "2026-10-30T00:58:16.055Z",
+      "endedAt": "2026-10-30T00:58:16.058Z",
+      "elapsedMs": 2.739875,
+      "outcome": "completada"
+    },
+    {
+      "kind": "lectura-api",
+      "action": "Snapshot B5-C4-entrada",
+      "method": "GET",
+      "path": "/api/bootstrap",
+      "username": "rodrigo",
+      "status": 200,
+      "startedAt": "2026-10-30T00:58:16.277Z",
+      "endedAt": "2026-10-30T00:58:16.282Z",
+      "elapsedMs": 4.494,
+      "outcome": "completada"
+    },
+    {
+      "kind": "lectura-api",
+      "action": "Snapshot B5-C4-salida",
+      "method": "GET",
+      "path": "/api/bootstrap",
+      "username": "rodrigo",
+      "status": 200,
+      "startedAt": "2026-10-30T00:58:16.539Z",
+      "endedAt": "2026-10-30T00:58:16.541Z",
+      "elapsedMs": 2.715292,
+      "outcome": "completada"
+    }
+  ],
+  "browserUiActions": [
+    {
+      "blockId": "B1",
+      "checkpoint": "C0",
+      "action": "Cliente abre Nueva solicitud desde Mi portal",
+      "transport": "browser-ui",
+      "execution": "Playwright; interacción automatizada, no ensayo humano",
+      "startedAt": "2026-10-30T00:58:10.787Z",
+      "endedAt": "2026-10-30T00:58:10.846Z",
+      "elapsedMs": 59.08775,
+      "outcome": "completada"
+    },
+    {
+      "blockId": "B1",
+      "checkpoint": "C0",
+      "action": "Cliente elige ART-001, dos gruesas y revisa la vista previa",
+      "transport": "browser-ui",
+      "execution": "Playwright; interacción automatizada, no ensayo humano",
+      "startedAt": "2026-10-30T00:58:10.846Z",
+      "endedAt": "2026-10-30T00:58:11.280Z",
+      "elapsedMs": 433.884,
+      "outcome": "completada"
+    },
+    {
+      "blockId": "B1",
+      "checkpoint": "C0→C1",
+      "action": "Cliente completa teléfono y consentimiento",
+      "transport": "browser-ui",
+      "execution": "Playwright; interacción automatizada, no ensayo humano",
+      "startedAt": "2026-10-30T00:58:11.280Z",
+      "endedAt": "2026-10-30T00:58:11.314Z",
+      "elapsedMs": 34.541375,
+      "outcome": "completada"
+    },
+    {
+      "blockId": "B1",
+      "checkpoint": "C0→C1",
+      "action": "Cliente envía la solicitud y vuelve al portal",
+      "transport": "browser-ui",
+      "execution": "Playwright; interacción automatizada, no ensayo humano",
+      "startedAt": "2026-10-30T00:58:11.315Z",
+      "endedAt": "2026-10-30T00:58:11.429Z",
+      "elapsedMs": 114.045584,
+      "outcome": "completada"
+    },
+    {
+      "blockId": "B2",
+      "checkpoint": "C1",
+      "action": "Rodrigo actualiza el Resumen para ver la solicitud Nueva",
+      "transport": "browser-ui",
+      "execution": "Playwright; interacción automatizada, no ensayo humano",
+      "startedAt": "2026-10-30T00:58:11.639Z",
+      "endedAt": "2026-10-30T00:58:11.665Z",
+      "elapsedMs": 26.523542,
+      "outcome": "completada"
+    },
+    {
+      "blockId": "B2",
+      "checkpoint": "C1",
+      "action": "Rodrigo abre Preparar cotización para la solicitud Nueva",
+      "transport": "browser-ui",
+      "execution": "Playwright; interacción automatizada, no ensayo humano",
+      "startedAt": "2026-10-30T00:58:11.763Z",
+      "endedAt": "2026-10-30T00:58:11.822Z",
+      "elapsedMs": 59.369125,
+      "outcome": "completada"
+    },
+    {
+      "blockId": "B2",
+      "checkpoint": "C1",
+      "action": "Rodrigo crea la cotización formal",
+      "transport": "browser-ui",
+      "execution": "Playwright; interacción automatizada, no ensayo humano",
+      "startedAt": "2026-10-30T00:58:11.822Z",
+      "endedAt": "2026-10-30T00:58:12.752Z",
+      "elapsedMs": 929.901667,
+      "outcome": "completada"
+    },
+    {
+      "blockId": "B2",
+      "checkpoint": "C1",
+      "action": "Rodrigo envía la propuesta",
+      "transport": "browser-ui",
+      "execution": "Playwright; interacción automatizada, no ensayo humano",
+      "startedAt": "2026-10-30T00:58:12.758Z",
+      "endedAt": "2026-10-30T00:58:12.835Z",
+      "elapsedMs": 77.446667,
+      "outcome": "completada"
+    },
+    {
+      "blockId": "B2",
+      "checkpoint": "C1",
+      "action": "Rodrigo registra la aceptación de la propuesta",
+      "transport": "browser-ui",
+      "execution": "Playwright; interacción automatizada, no ensayo humano",
+      "startedAt": "2026-10-30T00:58:12.835Z",
+      "endedAt": "2026-10-30T00:58:12.896Z",
+      "elapsedMs": 60.451166,
+      "outcome": "completada"
+    },
+    {
+      "blockId": "B2",
+      "checkpoint": "C1→C2",
+      "action": "Rodrigo convierte la cotización aceptada en pedido",
+      "transport": "browser-ui",
+      "execution": "Playwright; interacción automatizada, no ensayo humano",
+      "startedAt": "2026-10-30T00:58:12.896Z",
+      "endedAt": "2026-10-30T00:58:12.957Z",
+      "elapsedMs": 61.770583,
+      "outcome": "completada"
+    },
+    {
+      "blockId": "B2",
+      "checkpoint": "C1→C2",
+      "action": "Rodrigo abre Pedidos y el detalle de la orden con faltantes",
+      "transport": "browser-ui",
+      "execution": "Playwright; interacción automatizada, no ensayo humano",
+      "startedAt": "2026-10-30T00:58:12.960Z",
+      "endedAt": "2026-10-30T00:58:13.054Z",
+      "elapsedMs": 94.256167,
+      "outcome": "completada"
+    },
+    {
+      "blockId": "B3",
+      "checkpoint": "C2",
+      "action": "Lorena recibe 200 g de hilado negro",
+      "transport": "browser-ui",
+      "execution": "Playwright; interacción automatizada, no ensayo humano",
+      "startedAt": "2026-10-30T00:58:13.507Z",
+      "endedAt": "2026-10-30T00:58:13.573Z",
+      "elapsedMs": 66.284042,
+      "outcome": "completada"
+    },
+    {
+      "blockId": "B3",
+      "checkpoint": "C2",
+      "action": "Lorena recibe 100 g de alma negra",
+      "transport": "browser-ui",
+      "execution": "Playwright; interacción automatizada, no ensayo humano",
+      "startedAt": "2026-10-30T00:58:13.573Z",
+      "endedAt": "2026-10-30T00:58:13.643Z",
+      "elapsedMs": 69.886541,
+      "outcome": "completada"
+    },
+    {
+      "blockId": "B3",
+      "checkpoint": "C2→C3",
+      "action": "Minicorte: Rodrigo planifica M-04 con prioridad 1",
+      "transport": "browser-ui",
+      "execution": "Playwright; interacción automatizada, no ensayo humano",
+      "startedAt": "2026-10-30T00:58:13.653Z",
+      "endedAt": "2026-10-30T00:58:14.958Z",
+      "elapsedMs": 1305.635542,
+      "outcome": "completada"
+    },
+    {
+      "blockId": "B4",
+      "checkpoint": "C3",
+      "action": "Operario inicia la producción desde su cola",
+      "transport": "browser-ui",
+      "execution": "Playwright; interacción automatizada, no ensayo humano",
+      "startedAt": "2026-10-30T00:58:15.422Z",
+      "endedAt": "2026-10-30T00:58:15.526Z",
+      "elapsedMs": 103.917292,
+      "outcome": "completada"
+    },
+    {
+      "blockId": "B4",
+      "checkpoint": "C3→C4",
+      "action": "Operario registra 288 unidades y aprueba control de calidad",
+      "transport": "browser-ui",
+      "execution": "Playwright; interacción automatizada, no ensayo humano",
+      "startedAt": "2026-10-30T00:58:15.526Z",
+      "endedAt": "2026-10-30T00:58:16.050Z",
+      "elapsedMs": 524.748458,
+      "outcome": "completada"
+    },
+    {
+      "blockId": "B5",
+      "checkpoint": "C4",
+      "action": "Cliente vuelve a Mi portal y comprueba el pedido Listo",
+      "transport": "browser-ui",
+      "execution": "Playwright; interacción automatizada, no ensayo humano",
+      "startedAt": "2026-10-30T00:58:16.239Z",
+      "endedAt": "2026-10-30T00:58:16.277Z",
+      "elapsedMs": 38.354875,
+      "outcome": "completada"
+    },
+    {
+      "blockId": "B5",
+      "checkpoint": "C4",
+      "action": "Cliente desplaza el portal a Mis avisos y revisa los eventos registrados",
+      "transport": "browser-ui",
+      "execution": "Playwright; interacción automatizada, no ensayo humano",
+      "startedAt": "2026-10-30T00:58:16.498Z",
+      "endedAt": "2026-10-30T00:58:16.539Z",
+      "elapsedMs": 40.135834,
+      "outcome": "completada"
+    }
+  ],
+  "checkpoints": [
+    {
+      "blockId": "B1",
+      "checkpoint": "C0",
+      "phase": "entrada",
+      "checkpointId": "B1-C0-entrada",
+      "capturedAt": "2026-10-30T00:58:10.561Z",
+      "source": "GET /api/bootstrap autenticado como manager; lectura de estado, sin mutaciones",
+      "snapshotIdentity": {
+        "username": "rodrigo",
+        "role": "manager"
+      },
+      "ids": {
+        "clientId": "CLI-ALFA",
+        "requestId": null,
+        "quoteId": null,
+        "orderId": null,
+        "articleId": "ART-001",
+        "materialIds": [
+          "INS-NEGRO",
+          "INS-ALMA"
+        ]
+      },
+      "client": {
+        "id": "CLI-ALFA",
+        "name": "Cliente Alfa"
+      },
+      "product": {
+        "quantity": 2,
+        "unit": "gruesa",
+        "units": 288,
+        "expectedUnits": 288
+      },
+      "amounts": {
+        "expected": {
+          "netCents": 2160000,
+          "vatCents": 453600,
+          "totalCents": 2613600,
+          "netArs": "21600.00",
+          "vatArs": "4536.00",
+          "totalArs": "26136.00"
+        },
+        "quote": null,
+        "previewVerifiedInBrowser": false,
+        "quoteStatus": null
+      },
+      "request": null,
+      "quote": null,
+      "order": null,
+      "stocks": [
+        {
+          "id": "INS-NEGRO",
+          "name": "Hilado negro",
+          "color": "Negro",
+          "stockGrams": 400,
+          "reservedGrams": 0,
+          "availableGrams": 400,
+          "minGrams": 100,
+          "belowMinimum": false,
+          "requiredGrams": 0,
+          "shortageGrams": 0,
+          "priceCentsPerKg": 1000000,
+          "priceDate": "2026-10-30"
+        },
+        {
+          "id": "INS-ALMA",
+          "name": "Alma negra",
+          "color": "Negro",
+          "stockGrams": 200,
+          "reservedGrams": 0,
+          "availableGrams": 200,
+          "minGrams": 50,
+          "belowMinimum": false,
+          "requiredGrams": 0,
+          "shortageGrams": 0,
+          "priceCentsPerKg": 500000,
+          "priceDate": "2026-10-30"
+        }
+      ],
+      "notifications": []
+    },
+    {
+      "blockId": "B1",
+      "checkpoint": "C1",
+      "phase": "salida",
+      "checkpointId": "B1-C1-salida",
+      "capturedAt": "2026-10-30T00:58:11.431Z",
+      "source": "GET /api/bootstrap autenticado como manager; lectura de estado, sin mutaciones",
+      "snapshotIdentity": {
+        "username": "rodrigo",
+        "role": "manager"
+      },
+      "ids": {
+        "clientId": "CLI-ALFA",
+        "requestId": "request-e81b0d2f-a53e-404b-af74-bb77b4d42381",
+        "quoteId": null,
+        "orderId": null,
+        "articleId": "ART-001",
+        "materialIds": [
+          "INS-NEGRO",
+          "INS-ALMA"
+        ]
+      },
+      "client": {
+        "id": "CLI-ALFA",
+        "name": "Cliente Alfa"
+      },
+      "product": {
+        "quantity": 2,
+        "unit": "gruesa",
+        "units": 288,
+        "expectedUnits": 288
+      },
+      "amounts": {
+        "expected": {
+          "netCents": 2160000,
+          "vatCents": 453600,
+          "totalCents": 2613600,
+          "netArs": "21600.00",
+          "vatArs": "4536.00",
+          "totalArs": "26136.00"
+        },
+        "quote": null,
+        "previewVerifiedInBrowser": true,
+        "quoteStatus": null
+      },
+      "request": {
+        "id": "request-e81b0d2f-a53e-404b-af74-bb77b4d42381",
+        "clientId": "CLI-ALFA",
+        "articleId": "ART-001",
+        "quantity": 2,
+        "unit": "gruesa",
+        "status": "Nueva"
+      },
+      "quote": null,
+      "order": null,
+      "stocks": [
+        {
+          "id": "INS-NEGRO",
+          "name": "Hilado negro",
+          "color": "Negro",
+          "stockGrams": 400,
+          "reservedGrams": 0,
+          "availableGrams": 400,
+          "minGrams": 100,
+          "belowMinimum": false,
+          "requiredGrams": 0,
+          "shortageGrams": 0,
+          "priceCentsPerKg": 1000000,
+          "priceDate": "2026-10-30"
+        },
+        {
+          "id": "INS-ALMA",
+          "name": "Alma negra",
+          "color": "Negro",
+          "stockGrams": 200,
+          "reservedGrams": 0,
+          "availableGrams": 200,
+          "minGrams": 50,
+          "belowMinimum": false,
+          "requiredGrams": 0,
+          "shortageGrams": 0,
+          "priceCentsPerKg": 500000,
+          "priceDate": "2026-10-30"
+        }
+      ],
+      "notifications": []
+    },
+    {
+      "blockId": "B2",
+      "checkpoint": "C1",
+      "phase": "entrada",
+      "checkpointId": "B2-C1-entrada",
+      "capturedAt": "2026-10-30T00:58:11.672Z",
+      "source": "GET /api/bootstrap autenticado como manager; lectura de estado, sin mutaciones",
+      "snapshotIdentity": {
+        "username": "rodrigo",
+        "role": "manager"
+      },
+      "ids": {
+        "clientId": "CLI-ALFA",
+        "requestId": "request-e81b0d2f-a53e-404b-af74-bb77b4d42381",
+        "quoteId": null,
+        "orderId": null,
+        "articleId": "ART-001",
+        "materialIds": [
+          "INS-NEGRO",
+          "INS-ALMA"
+        ]
+      },
+      "client": {
+        "id": "CLI-ALFA",
+        "name": "Cliente Alfa"
+      },
+      "product": {
+        "quantity": 2,
+        "unit": "gruesa",
+        "units": 288,
+        "expectedUnits": 288
+      },
+      "amounts": {
+        "expected": {
+          "netCents": 2160000,
+          "vatCents": 453600,
+          "totalCents": 2613600,
+          "netArs": "21600.00",
+          "vatArs": "4536.00",
+          "totalArs": "26136.00"
+        },
+        "quote": null,
+        "previewVerifiedInBrowser": true,
+        "quoteStatus": null
+      },
+      "request": {
+        "id": "request-e81b0d2f-a53e-404b-af74-bb77b4d42381",
+        "clientId": "CLI-ALFA",
+        "articleId": "ART-001",
+        "quantity": 2,
+        "unit": "gruesa",
+        "status": "Nueva"
+      },
+      "quote": null,
+      "order": null,
+      "stocks": [
+        {
+          "id": "INS-NEGRO",
+          "name": "Hilado negro",
+          "color": "Negro",
+          "stockGrams": 400,
+          "reservedGrams": 0,
+          "availableGrams": 400,
+          "minGrams": 100,
+          "belowMinimum": false,
+          "requiredGrams": 0,
+          "shortageGrams": 0,
+          "priceCentsPerKg": 1000000,
+          "priceDate": "2026-10-30"
+        },
+        {
+          "id": "INS-ALMA",
+          "name": "Alma negra",
+          "color": "Negro",
+          "stockGrams": 200,
+          "reservedGrams": 0,
+          "availableGrams": 200,
+          "minGrams": 50,
+          "belowMinimum": false,
+          "requiredGrams": 0,
+          "shortageGrams": 0,
+          "priceCentsPerKg": 500000,
+          "priceDate": "2026-10-30"
+        }
+      ],
+      "notifications": []
+    },
+    {
+      "blockId": "B2",
+      "checkpoint": "C2",
+      "phase": "salida",
+      "checkpointId": "B2-C2-salida",
+      "capturedAt": "2026-10-30T00:58:13.056Z",
+      "source": "GET /api/bootstrap autenticado como manager; lectura de estado, sin mutaciones",
+      "snapshotIdentity": {
+        "username": "rodrigo",
+        "role": "manager"
+      },
+      "ids": {
+        "clientId": "CLI-ALFA",
+        "requestId": "request-e81b0d2f-a53e-404b-af74-bb77b4d42381",
+        "quoteId": "quote-a355ef1c-cfe5-4053-b51b-3f51b11e269d",
+        "orderId": "order-3f6be0d8-37f7-4082-a654-96058edef306",
+        "articleId": "ART-001",
+        "materialIds": [
+          "INS-NEGRO",
+          "INS-ALMA"
+        ]
+      },
+      "client": {
+        "id": "CLI-ALFA",
+        "name": "Cliente Alfa"
+      },
+      "product": {
+        "quantity": 2,
+        "unit": "gruesa",
+        "units": 288,
+        "expectedUnits": 288
+      },
+      "amounts": {
+        "expected": {
+          "netCents": 2160000,
+          "vatCents": 453600,
+          "totalCents": 2613600,
+          "netArs": "21600.00",
+          "vatArs": "4536.00",
+          "totalArs": "26136.00"
+        },
+        "quote": {
+          "netCents": 2160000,
+          "vatCents": 453600,
+          "totalCents": 2613600,
+          "netArs": "21600.00",
+          "vatArs": "4536.00",
+          "totalArs": "26136.00"
+        },
+        "previewVerifiedInBrowser": true,
+        "quoteStatus": "Aceptada"
+      },
+      "request": {
+        "id": "request-e81b0d2f-a53e-404b-af74-bb77b4d42381",
+        "clientId": "CLI-ALFA",
+        "articleId": "ART-001",
+        "quantity": 2,
+        "unit": "gruesa",
+        "status": "Cotizada"
+      },
+      "quote": {
+        "id": "quote-a355ef1c-cfe5-4053-b51b-3f51b11e269d",
+        "clientId": "CLI-ALFA",
+        "articleId": "ART-001",
+        "quantity": 2,
+        "unit": "gruesa",
+        "units": 288,
+        "netCents": 2160000,
+        "vatCents": 453600,
+        "totalCents": 2613600,
+        "status": "Aceptada"
+      },
+      "order": {
+        "id": "order-3f6be0d8-37f7-4082-a654-96058edef306",
+        "number": "PED-000003",
+        "quoteId": "quote-a355ef1c-cfe5-4053-b51b-3f51b11e269d",
+        "clientId": "CLI-ALFA",
+        "articleId": "ART-001",
+        "quantity": 2,
+        "unit": "gruesa",
+        "units": 288,
+        "producedUnits": 0,
+        "status": "Pendiente",
+        "machineId": null,
+        "priority": 3,
+        "qualityChecked": false,
+        "requirements": [
+          {
+            "insumoId": "INS-ALMA",
+            "requiredGrams": 288,
+            "reservedGrams": 200,
+            "consumedGrams": 0,
+            "shortageGrams": 88
+          },
+          {
+            "insumoId": "INS-NEGRO",
+            "requiredGrams": 576,
+            "reservedGrams": 400,
+            "consumedGrams": 0,
+            "shortageGrams": 176
+          }
+        ]
+      },
+      "stocks": [
+        {
+          "id": "INS-NEGRO",
+          "name": "Hilado negro",
+          "color": "Negro",
+          "stockGrams": 400,
+          "reservedGrams": 400,
+          "availableGrams": 0,
+          "minGrams": 100,
+          "belowMinimum": false,
+          "requiredGrams": 576,
+          "shortageGrams": 176,
+          "priceCentsPerKg": 1000000,
+          "priceDate": "2026-10-30"
+        },
+        {
+          "id": "INS-ALMA",
+          "name": "Alma negra",
+          "color": "Negro",
+          "stockGrams": 200,
+          "reservedGrams": 200,
+          "availableGrams": 0,
+          "minGrams": 50,
+          "belowMinimum": false,
+          "requiredGrams": 288,
+          "shortageGrams": 88,
+          "priceCentsPerKg": 500000,
+          "priceDate": "2026-10-30"
+        }
+      ],
+      "notifications": [
+        {
+          "id": "notification-87b162f7-0dc4-4bda-b1c8-6f0e34326fed",
+          "clientId": "CLI-ALFA",
+          "event": "Cotización enviada",
+          "status": "Registrada",
+          "orderId": null,
+          "quoteId": "quote-a355ef1c-cfe5-4053-b51b-3f51b11e269d"
+        }
+      ]
+    },
+    {
+      "blockId": "B3",
+      "checkpoint": "C2",
+      "phase": "entrada",
+      "checkpointId": "B3-C2-entrada",
+      "capturedAt": "2026-10-30T00:58:13.333Z",
+      "source": "GET /api/bootstrap autenticado como manager; lectura de estado, sin mutaciones",
+      "snapshotIdentity": {
+        "username": "rodrigo",
+        "role": "manager"
+      },
+      "ids": {
+        "clientId": "CLI-ALFA",
+        "requestId": "request-e81b0d2f-a53e-404b-af74-bb77b4d42381",
+        "quoteId": "quote-a355ef1c-cfe5-4053-b51b-3f51b11e269d",
+        "orderId": "order-3f6be0d8-37f7-4082-a654-96058edef306",
+        "articleId": "ART-001",
+        "materialIds": [
+          "INS-NEGRO",
+          "INS-ALMA"
+        ]
+      },
+      "client": {
+        "id": "CLI-ALFA",
+        "name": "Cliente Alfa"
+      },
+      "product": {
+        "quantity": 2,
+        "unit": "gruesa",
+        "units": 288,
+        "expectedUnits": 288
+      },
+      "amounts": {
+        "expected": {
+          "netCents": 2160000,
+          "vatCents": 453600,
+          "totalCents": 2613600,
+          "netArs": "21600.00",
+          "vatArs": "4536.00",
+          "totalArs": "26136.00"
+        },
+        "quote": {
+          "netCents": 2160000,
+          "vatCents": 453600,
+          "totalCents": 2613600,
+          "netArs": "21600.00",
+          "vatArs": "4536.00",
+          "totalArs": "26136.00"
+        },
+        "previewVerifiedInBrowser": true,
+        "quoteStatus": "Aceptada"
+      },
+      "request": {
+        "id": "request-e81b0d2f-a53e-404b-af74-bb77b4d42381",
+        "clientId": "CLI-ALFA",
+        "articleId": "ART-001",
+        "quantity": 2,
+        "unit": "gruesa",
+        "status": "Cotizada"
+      },
+      "quote": {
+        "id": "quote-a355ef1c-cfe5-4053-b51b-3f51b11e269d",
+        "clientId": "CLI-ALFA",
+        "articleId": "ART-001",
+        "quantity": 2,
+        "unit": "gruesa",
+        "units": 288,
+        "netCents": 2160000,
+        "vatCents": 453600,
+        "totalCents": 2613600,
+        "status": "Aceptada"
+      },
+      "order": {
+        "id": "order-3f6be0d8-37f7-4082-a654-96058edef306",
+        "number": "PED-000003",
+        "quoteId": "quote-a355ef1c-cfe5-4053-b51b-3f51b11e269d",
+        "clientId": "CLI-ALFA",
+        "articleId": "ART-001",
+        "quantity": 2,
+        "unit": "gruesa",
+        "units": 288,
+        "producedUnits": 0,
+        "status": "Pendiente",
+        "machineId": null,
+        "priority": 3,
+        "qualityChecked": false,
+        "requirements": [
+          {
+            "insumoId": "INS-ALMA",
+            "requiredGrams": 288,
+            "reservedGrams": 200,
+            "consumedGrams": 0,
+            "shortageGrams": 88
+          },
+          {
+            "insumoId": "INS-NEGRO",
+            "requiredGrams": 576,
+            "reservedGrams": 400,
+            "consumedGrams": 0,
+            "shortageGrams": 176
+          }
+        ]
+      },
+      "stocks": [
+        {
+          "id": "INS-NEGRO",
+          "name": "Hilado negro",
+          "color": "Negro",
+          "stockGrams": 400,
+          "reservedGrams": 400,
+          "availableGrams": 0,
+          "minGrams": 100,
+          "belowMinimum": false,
+          "requiredGrams": 576,
+          "shortageGrams": 176,
+          "priceCentsPerKg": 1000000,
+          "priceDate": "2026-10-30"
+        },
+        {
+          "id": "INS-ALMA",
+          "name": "Alma negra",
+          "color": "Negro",
+          "stockGrams": 200,
+          "reservedGrams": 200,
+          "availableGrams": 0,
+          "minGrams": 50,
+          "belowMinimum": false,
+          "requiredGrams": 288,
+          "shortageGrams": 88,
+          "priceCentsPerKg": 500000,
+          "priceDate": "2026-10-30"
+        }
+      ],
+      "notifications": [
+        {
+          "id": "notification-87b162f7-0dc4-4bda-b1c8-6f0e34326fed",
+          "clientId": "CLI-ALFA",
+          "event": "Cotización enviada",
+          "status": "Registrada",
+          "orderId": null,
+          "quoteId": "quote-a355ef1c-cfe5-4053-b51b-3f51b11e269d"
+        }
+      ]
+    },
+    {
+      "blockId": "B3",
+      "checkpoint": "C3",
+      "phase": "salida",
+      "checkpointId": "B3-C3-salida",
+      "capturedAt": "2026-10-30T00:58:14.965Z",
+      "source": "GET /api/bootstrap autenticado como manager; lectura de estado, sin mutaciones",
+      "snapshotIdentity": {
+        "username": "rodrigo",
+        "role": "manager"
+      },
+      "ids": {
+        "clientId": "CLI-ALFA",
+        "requestId": "request-e81b0d2f-a53e-404b-af74-bb77b4d42381",
+        "quoteId": "quote-a355ef1c-cfe5-4053-b51b-3f51b11e269d",
+        "orderId": "order-3f6be0d8-37f7-4082-a654-96058edef306",
+        "articleId": "ART-001",
+        "materialIds": [
+          "INS-NEGRO",
+          "INS-ALMA"
+        ]
+      },
+      "client": {
+        "id": "CLI-ALFA",
+        "name": "Cliente Alfa"
+      },
+      "product": {
+        "quantity": 2,
+        "unit": "gruesa",
+        "units": 288,
+        "expectedUnits": 288
+      },
+      "amounts": {
+        "expected": {
+          "netCents": 2160000,
+          "vatCents": 453600,
+          "totalCents": 2613600,
+          "netArs": "21600.00",
+          "vatArs": "4536.00",
+          "totalArs": "26136.00"
+        },
+        "quote": {
+          "netCents": 2160000,
+          "vatCents": 453600,
+          "totalCents": 2613600,
+          "netArs": "21600.00",
+          "vatArs": "4536.00",
+          "totalArs": "26136.00"
+        },
+        "previewVerifiedInBrowser": true,
+        "quoteStatus": "Aceptada"
+      },
+      "request": {
+        "id": "request-e81b0d2f-a53e-404b-af74-bb77b4d42381",
+        "clientId": "CLI-ALFA",
+        "articleId": "ART-001",
+        "quantity": 2,
+        "unit": "gruesa",
+        "status": "Cotizada"
+      },
+      "quote": {
+        "id": "quote-a355ef1c-cfe5-4053-b51b-3f51b11e269d",
+        "clientId": "CLI-ALFA",
+        "articleId": "ART-001",
+        "quantity": 2,
+        "unit": "gruesa",
+        "units": 288,
+        "netCents": 2160000,
+        "vatCents": 453600,
+        "totalCents": 2613600,
+        "status": "Aceptada"
+      },
+      "order": {
+        "id": "order-3f6be0d8-37f7-4082-a654-96058edef306",
+        "number": "PED-000003",
+        "quoteId": "quote-a355ef1c-cfe5-4053-b51b-3f51b11e269d",
+        "clientId": "CLI-ALFA",
+        "articleId": "ART-001",
+        "quantity": 2,
+        "unit": "gruesa",
+        "units": 288,
+        "producedUnits": 0,
+        "status": "Pendiente",
+        "machineId": "M-04",
+        "priority": 1,
+        "qualityChecked": false,
+        "requirements": [
+          {
+            "insumoId": "INS-ALMA",
+            "requiredGrams": 288,
+            "reservedGrams": 288,
+            "consumedGrams": 0,
+            "shortageGrams": 0
+          },
+          {
+            "insumoId": "INS-NEGRO",
+            "requiredGrams": 576,
+            "reservedGrams": 576,
+            "consumedGrams": 0,
+            "shortageGrams": 0
+          }
+        ]
+      },
+      "stocks": [
+        {
+          "id": "INS-NEGRO",
+          "name": "Hilado negro",
+          "color": "Negro",
+          "stockGrams": 600,
+          "reservedGrams": 576,
+          "availableGrams": 24,
+          "minGrams": 100,
+          "belowMinimum": false,
+          "requiredGrams": 576,
+          "shortageGrams": 0,
+          "priceCentsPerKg": 1000000,
+          "priceDate": "2026-10-30"
+        },
+        {
+          "id": "INS-ALMA",
+          "name": "Alma negra",
+          "color": "Negro",
+          "stockGrams": 300,
+          "reservedGrams": 288,
+          "availableGrams": 12,
+          "minGrams": 50,
+          "belowMinimum": false,
+          "requiredGrams": 288,
+          "shortageGrams": 0,
+          "priceCentsPerKg": 500000,
+          "priceDate": "2026-10-30"
+        }
+      ],
+      "notifications": [
+        {
+          "id": "notification-87b162f7-0dc4-4bda-b1c8-6f0e34326fed",
+          "clientId": "CLI-ALFA",
+          "event": "Cotización enviada",
+          "status": "Registrada",
+          "orderId": null,
+          "quoteId": "quote-a355ef1c-cfe5-4053-b51b-3f51b11e269d"
+        }
+      ]
+    },
+    {
+      "blockId": "B4",
+      "checkpoint": "C3",
+      "phase": "entrada",
+      "checkpointId": "B4-C3-entrada",
+      "capturedAt": "2026-10-30T00:58:15.289Z",
+      "source": "GET /api/bootstrap autenticado como manager; lectura de estado, sin mutaciones",
+      "snapshotIdentity": {
+        "username": "rodrigo",
+        "role": "manager"
+      },
+      "ids": {
+        "clientId": "CLI-ALFA",
+        "requestId": "request-e81b0d2f-a53e-404b-af74-bb77b4d42381",
+        "quoteId": "quote-a355ef1c-cfe5-4053-b51b-3f51b11e269d",
+        "orderId": "order-3f6be0d8-37f7-4082-a654-96058edef306",
+        "articleId": "ART-001",
+        "materialIds": [
+          "INS-NEGRO",
+          "INS-ALMA"
+        ]
+      },
+      "client": {
+        "id": "CLI-ALFA",
+        "name": "Cliente Alfa"
+      },
+      "product": {
+        "quantity": 2,
+        "unit": "gruesa",
+        "units": 288,
+        "expectedUnits": 288
+      },
+      "amounts": {
+        "expected": {
+          "netCents": 2160000,
+          "vatCents": 453600,
+          "totalCents": 2613600,
+          "netArs": "21600.00",
+          "vatArs": "4536.00",
+          "totalArs": "26136.00"
+        },
+        "quote": {
+          "netCents": 2160000,
+          "vatCents": 453600,
+          "totalCents": 2613600,
+          "netArs": "21600.00",
+          "vatArs": "4536.00",
+          "totalArs": "26136.00"
+        },
+        "previewVerifiedInBrowser": true,
+        "quoteStatus": "Aceptada"
+      },
+      "request": {
+        "id": "request-e81b0d2f-a53e-404b-af74-bb77b4d42381",
+        "clientId": "CLI-ALFA",
+        "articleId": "ART-001",
+        "quantity": 2,
+        "unit": "gruesa",
+        "status": "Cotizada"
+      },
+      "quote": {
+        "id": "quote-a355ef1c-cfe5-4053-b51b-3f51b11e269d",
+        "clientId": "CLI-ALFA",
+        "articleId": "ART-001",
+        "quantity": 2,
+        "unit": "gruesa",
+        "units": 288,
+        "netCents": 2160000,
+        "vatCents": 453600,
+        "totalCents": 2613600,
+        "status": "Aceptada"
+      },
+      "order": {
+        "id": "order-3f6be0d8-37f7-4082-a654-96058edef306",
+        "number": "PED-000003",
+        "quoteId": "quote-a355ef1c-cfe5-4053-b51b-3f51b11e269d",
+        "clientId": "CLI-ALFA",
+        "articleId": "ART-001",
+        "quantity": 2,
+        "unit": "gruesa",
+        "units": 288,
+        "producedUnits": 0,
+        "status": "Pendiente",
+        "machineId": "M-04",
+        "priority": 1,
+        "qualityChecked": false,
+        "requirements": [
+          {
+            "insumoId": "INS-ALMA",
+            "requiredGrams": 288,
+            "reservedGrams": 288,
+            "consumedGrams": 0,
+            "shortageGrams": 0
+          },
+          {
+            "insumoId": "INS-NEGRO",
+            "requiredGrams": 576,
+            "reservedGrams": 576,
+            "consumedGrams": 0,
+            "shortageGrams": 0
+          }
+        ]
+      },
+      "stocks": [
+        {
+          "id": "INS-NEGRO",
+          "name": "Hilado negro",
+          "color": "Negro",
+          "stockGrams": 600,
+          "reservedGrams": 576,
+          "availableGrams": 24,
+          "minGrams": 100,
+          "belowMinimum": false,
+          "requiredGrams": 576,
+          "shortageGrams": 0,
+          "priceCentsPerKg": 1000000,
+          "priceDate": "2026-10-30"
+        },
+        {
+          "id": "INS-ALMA",
+          "name": "Alma negra",
+          "color": "Negro",
+          "stockGrams": 300,
+          "reservedGrams": 288,
+          "availableGrams": 12,
+          "minGrams": 50,
+          "belowMinimum": false,
+          "requiredGrams": 288,
+          "shortageGrams": 0,
+          "priceCentsPerKg": 500000,
+          "priceDate": "2026-10-30"
+        }
+      ],
+      "notifications": [
+        {
+          "id": "notification-87b162f7-0dc4-4bda-b1c8-6f0e34326fed",
+          "clientId": "CLI-ALFA",
+          "event": "Cotización enviada",
+          "status": "Registrada",
+          "orderId": null,
+          "quoteId": "quote-a355ef1c-cfe5-4053-b51b-3f51b11e269d"
+        }
+      ]
+    },
+    {
+      "blockId": "B4",
+      "checkpoint": "C4",
+      "phase": "salida",
+      "checkpointId": "B4-C4-salida",
+      "capturedAt": "2026-10-30T00:58:16.058Z",
+      "source": "GET /api/bootstrap autenticado como manager; lectura de estado, sin mutaciones",
+      "snapshotIdentity": {
+        "username": "rodrigo",
+        "role": "manager"
+      },
+      "ids": {
+        "clientId": "CLI-ALFA",
+        "requestId": "request-e81b0d2f-a53e-404b-af74-bb77b4d42381",
+        "quoteId": "quote-a355ef1c-cfe5-4053-b51b-3f51b11e269d",
+        "orderId": "order-3f6be0d8-37f7-4082-a654-96058edef306",
+        "articleId": "ART-001",
+        "materialIds": [
+          "INS-NEGRO",
+          "INS-ALMA"
+        ]
+      },
+      "client": {
+        "id": "CLI-ALFA",
+        "name": "Cliente Alfa"
+      },
+      "product": {
+        "quantity": 2,
+        "unit": "gruesa",
+        "units": 288,
+        "expectedUnits": 288
+      },
+      "amounts": {
+        "expected": {
+          "netCents": 2160000,
+          "vatCents": 453600,
+          "totalCents": 2613600,
+          "netArs": "21600.00",
+          "vatArs": "4536.00",
+          "totalArs": "26136.00"
+        },
+        "quote": {
+          "netCents": 2160000,
+          "vatCents": 453600,
+          "totalCents": 2613600,
+          "netArs": "21600.00",
+          "vatArs": "4536.00",
+          "totalArs": "26136.00"
+        },
+        "previewVerifiedInBrowser": true,
+        "quoteStatus": "Aceptada"
+      },
+      "request": {
+        "id": "request-e81b0d2f-a53e-404b-af74-bb77b4d42381",
+        "clientId": "CLI-ALFA",
+        "articleId": "ART-001",
+        "quantity": 2,
+        "unit": "gruesa",
+        "status": "Cotizada"
+      },
+      "quote": {
+        "id": "quote-a355ef1c-cfe5-4053-b51b-3f51b11e269d",
+        "clientId": "CLI-ALFA",
+        "articleId": "ART-001",
+        "quantity": 2,
+        "unit": "gruesa",
+        "units": 288,
+        "netCents": 2160000,
+        "vatCents": 453600,
+        "totalCents": 2613600,
+        "status": "Aceptada"
+      },
+      "order": {
+        "id": "order-3f6be0d8-37f7-4082-a654-96058edef306",
+        "number": "PED-000003",
+        "quoteId": "quote-a355ef1c-cfe5-4053-b51b-3f51b11e269d",
+        "clientId": "CLI-ALFA",
+        "articleId": "ART-001",
+        "quantity": 2,
+        "unit": "gruesa",
+        "units": 288,
+        "producedUnits": 288,
+        "status": "Listo",
+        "machineId": "M-04",
+        "priority": 1,
+        "qualityChecked": true,
+        "requirements": [
+          {
+            "insumoId": "INS-ALMA",
+            "requiredGrams": 288,
+            "reservedGrams": 0,
+            "consumedGrams": 288,
+            "shortageGrams": 0
+          },
+          {
+            "insumoId": "INS-NEGRO",
+            "requiredGrams": 576,
+            "reservedGrams": 0,
+            "consumedGrams": 576,
+            "shortageGrams": 0
+          }
+        ]
+      },
+      "stocks": [
+        {
+          "id": "INS-NEGRO",
+          "name": "Hilado negro",
+          "color": "Negro",
+          "stockGrams": 24,
+          "reservedGrams": 0,
+          "availableGrams": 24,
+          "minGrams": 100,
+          "belowMinimum": true,
+          "requiredGrams": 0,
+          "shortageGrams": 0,
+          "priceCentsPerKg": 1000000,
+          "priceDate": "2026-10-30"
+        },
+        {
+          "id": "INS-ALMA",
+          "name": "Alma negra",
+          "color": "Negro",
+          "stockGrams": 12,
+          "reservedGrams": 0,
+          "availableGrams": 12,
+          "minGrams": 50,
+          "belowMinimum": true,
+          "requiredGrams": 0,
+          "shortageGrams": 0,
+          "priceCentsPerKg": 500000,
+          "priceDate": "2026-10-30"
+        }
+      ],
+      "notifications": [
+        {
+          "id": "notification-cf7fc29c-97ae-4d1d-ae76-ca298a68f028",
+          "clientId": "CLI-ALFA",
+          "event": "Listo",
+          "status": "Registrada",
+          "orderId": "order-3f6be0d8-37f7-4082-a654-96058edef306",
+          "quoteId": null
+        },
+        {
+          "id": "notification-3a454595-c8a1-4647-8bd3-d72aedee146f",
+          "clientId": "CLI-ALFA",
+          "event": "En producción",
+          "status": "Registrada",
+          "orderId": "order-3f6be0d8-37f7-4082-a654-96058edef306",
+          "quoteId": null
+        },
+        {
+          "id": "notification-87b162f7-0dc4-4bda-b1c8-6f0e34326fed",
+          "clientId": "CLI-ALFA",
+          "event": "Cotización enviada",
+          "status": "Registrada",
+          "orderId": null,
+          "quoteId": "quote-a355ef1c-cfe5-4053-b51b-3f51b11e269d"
+        }
+      ]
+    },
+    {
+      "blockId": "B5",
+      "checkpoint": "C4",
+      "phase": "entrada",
+      "checkpointId": "B5-C4-entrada",
+      "capturedAt": "2026-10-30T00:58:16.282Z",
+      "source": "GET /api/bootstrap autenticado como manager; lectura de estado, sin mutaciones",
+      "snapshotIdentity": {
+        "username": "rodrigo",
+        "role": "manager"
+      },
+      "ids": {
+        "clientId": "CLI-ALFA",
+        "requestId": "request-e81b0d2f-a53e-404b-af74-bb77b4d42381",
+        "quoteId": "quote-a355ef1c-cfe5-4053-b51b-3f51b11e269d",
+        "orderId": "order-3f6be0d8-37f7-4082-a654-96058edef306",
+        "articleId": "ART-001",
+        "materialIds": [
+          "INS-NEGRO",
+          "INS-ALMA"
+        ]
+      },
+      "client": {
+        "id": "CLI-ALFA",
+        "name": "Cliente Alfa"
+      },
+      "product": {
+        "quantity": 2,
+        "unit": "gruesa",
+        "units": 288,
+        "expectedUnits": 288
+      },
+      "amounts": {
+        "expected": {
+          "netCents": 2160000,
+          "vatCents": 453600,
+          "totalCents": 2613600,
+          "netArs": "21600.00",
+          "vatArs": "4536.00",
+          "totalArs": "26136.00"
+        },
+        "quote": {
+          "netCents": 2160000,
+          "vatCents": 453600,
+          "totalCents": 2613600,
+          "netArs": "21600.00",
+          "vatArs": "4536.00",
+          "totalArs": "26136.00"
+        },
+        "previewVerifiedInBrowser": true,
+        "quoteStatus": "Aceptada"
+      },
+      "request": {
+        "id": "request-e81b0d2f-a53e-404b-af74-bb77b4d42381",
+        "clientId": "CLI-ALFA",
+        "articleId": "ART-001",
+        "quantity": 2,
+        "unit": "gruesa",
+        "status": "Cotizada"
+      },
+      "quote": {
+        "id": "quote-a355ef1c-cfe5-4053-b51b-3f51b11e269d",
+        "clientId": "CLI-ALFA",
+        "articleId": "ART-001",
+        "quantity": 2,
+        "unit": "gruesa",
+        "units": 288,
+        "netCents": 2160000,
+        "vatCents": 453600,
+        "totalCents": 2613600,
+        "status": "Aceptada"
+      },
+      "order": {
+        "id": "order-3f6be0d8-37f7-4082-a654-96058edef306",
+        "number": "PED-000003",
+        "quoteId": "quote-a355ef1c-cfe5-4053-b51b-3f51b11e269d",
+        "clientId": "CLI-ALFA",
+        "articleId": "ART-001",
+        "quantity": 2,
+        "unit": "gruesa",
+        "units": 288,
+        "producedUnits": 288,
+        "status": "Listo",
+        "machineId": "M-04",
+        "priority": 1,
+        "qualityChecked": true,
+        "requirements": [
+          {
+            "insumoId": "INS-ALMA",
+            "requiredGrams": 288,
+            "reservedGrams": 0,
+            "consumedGrams": 288,
+            "shortageGrams": 0
+          },
+          {
+            "insumoId": "INS-NEGRO",
+            "requiredGrams": 576,
+            "reservedGrams": 0,
+            "consumedGrams": 576,
+            "shortageGrams": 0
+          }
+        ]
+      },
+      "stocks": [
+        {
+          "id": "INS-NEGRO",
+          "name": "Hilado negro",
+          "color": "Negro",
+          "stockGrams": 24,
+          "reservedGrams": 0,
+          "availableGrams": 24,
+          "minGrams": 100,
+          "belowMinimum": true,
+          "requiredGrams": 0,
+          "shortageGrams": 0,
+          "priceCentsPerKg": 1000000,
+          "priceDate": "2026-10-30"
+        },
+        {
+          "id": "INS-ALMA",
+          "name": "Alma negra",
+          "color": "Negro",
+          "stockGrams": 12,
+          "reservedGrams": 0,
+          "availableGrams": 12,
+          "minGrams": 50,
+          "belowMinimum": true,
+          "requiredGrams": 0,
+          "shortageGrams": 0,
+          "priceCentsPerKg": 500000,
+          "priceDate": "2026-10-30"
+        }
+      ],
+      "notifications": [
+        {
+          "id": "notification-cf7fc29c-97ae-4d1d-ae76-ca298a68f028",
+          "clientId": "CLI-ALFA",
+          "event": "Listo",
+          "status": "Registrada",
+          "orderId": "order-3f6be0d8-37f7-4082-a654-96058edef306",
+          "quoteId": null
+        },
+        {
+          "id": "notification-3a454595-c8a1-4647-8bd3-d72aedee146f",
+          "clientId": "CLI-ALFA",
+          "event": "En producción",
+          "status": "Registrada",
+          "orderId": "order-3f6be0d8-37f7-4082-a654-96058edef306",
+          "quoteId": null
+        },
+        {
+          "id": "notification-87b162f7-0dc4-4bda-b1c8-6f0e34326fed",
+          "clientId": "CLI-ALFA",
+          "event": "Cotización enviada",
+          "status": "Registrada",
+          "orderId": null,
+          "quoteId": "quote-a355ef1c-cfe5-4053-b51b-3f51b11e269d"
+        }
+      ]
+    },
+    {
+      "blockId": "B5",
+      "checkpoint": "C4",
+      "phase": "salida",
+      "checkpointId": "B5-C4-salida",
+      "capturedAt": "2026-10-30T00:58:16.541Z",
+      "source": "GET /api/bootstrap autenticado como manager; lectura de estado, sin mutaciones",
+      "snapshotIdentity": {
+        "username": "rodrigo",
+        "role": "manager"
+      },
+      "ids": {
+        "clientId": "CLI-ALFA",
+        "requestId": "request-e81b0d2f-a53e-404b-af74-bb77b4d42381",
+        "quoteId": "quote-a355ef1c-cfe5-4053-b51b-3f51b11e269d",
+        "orderId": "order-3f6be0d8-37f7-4082-a654-96058edef306",
+        "articleId": "ART-001",
+        "materialIds": [
+          "INS-NEGRO",
+          "INS-ALMA"
+        ]
+      },
+      "client": {
+        "id": "CLI-ALFA",
+        "name": "Cliente Alfa"
+      },
+      "product": {
+        "quantity": 2,
+        "unit": "gruesa",
+        "units": 288,
+        "expectedUnits": 288
+      },
+      "amounts": {
+        "expected": {
+          "netCents": 2160000,
+          "vatCents": 453600,
+          "totalCents": 2613600,
+          "netArs": "21600.00",
+          "vatArs": "4536.00",
+          "totalArs": "26136.00"
+        },
+        "quote": {
+          "netCents": 2160000,
+          "vatCents": 453600,
+          "totalCents": 2613600,
+          "netArs": "21600.00",
+          "vatArs": "4536.00",
+          "totalArs": "26136.00"
+        },
+        "previewVerifiedInBrowser": true,
+        "quoteStatus": "Aceptada"
+      },
+      "request": {
+        "id": "request-e81b0d2f-a53e-404b-af74-bb77b4d42381",
+        "clientId": "CLI-ALFA",
+        "articleId": "ART-001",
+        "quantity": 2,
+        "unit": "gruesa",
+        "status": "Cotizada"
+      },
+      "quote": {
+        "id": "quote-a355ef1c-cfe5-4053-b51b-3f51b11e269d",
+        "clientId": "CLI-ALFA",
+        "articleId": "ART-001",
+        "quantity": 2,
+        "unit": "gruesa",
+        "units": 288,
+        "netCents": 2160000,
+        "vatCents": 453600,
+        "totalCents": 2613600,
+        "status": "Aceptada"
+      },
+      "order": {
+        "id": "order-3f6be0d8-37f7-4082-a654-96058edef306",
+        "number": "PED-000003",
+        "quoteId": "quote-a355ef1c-cfe5-4053-b51b-3f51b11e269d",
+        "clientId": "CLI-ALFA",
+        "articleId": "ART-001",
+        "quantity": 2,
+        "unit": "gruesa",
+        "units": 288,
+        "producedUnits": 288,
+        "status": "Listo",
+        "machineId": "M-04",
+        "priority": 1,
+        "qualityChecked": true,
+        "requirements": [
+          {
+            "insumoId": "INS-ALMA",
+            "requiredGrams": 288,
+            "reservedGrams": 0,
+            "consumedGrams": 288,
+            "shortageGrams": 0
+          },
+          {
+            "insumoId": "INS-NEGRO",
+            "requiredGrams": 576,
+            "reservedGrams": 0,
+            "consumedGrams": 576,
+            "shortageGrams": 0
+          }
+        ]
+      },
+      "stocks": [
+        {
+          "id": "INS-NEGRO",
+          "name": "Hilado negro",
+          "color": "Negro",
+          "stockGrams": 24,
+          "reservedGrams": 0,
+          "availableGrams": 24,
+          "minGrams": 100,
+          "belowMinimum": true,
+          "requiredGrams": 0,
+          "shortageGrams": 0,
+          "priceCentsPerKg": 1000000,
+          "priceDate": "2026-10-30"
+        },
+        {
+          "id": "INS-ALMA",
+          "name": "Alma negra",
+          "color": "Negro",
+          "stockGrams": 12,
+          "reservedGrams": 0,
+          "availableGrams": 12,
+          "minGrams": 50,
+          "belowMinimum": true,
+          "requiredGrams": 0,
+          "shortageGrams": 0,
+          "priceCentsPerKg": 500000,
+          "priceDate": "2026-10-30"
+        }
+      ],
+      "notifications": [
+        {
+          "id": "notification-cf7fc29c-97ae-4d1d-ae76-ca298a68f028",
+          "clientId": "CLI-ALFA",
+          "event": "Listo",
+          "status": "Registrada",
+          "orderId": "order-3f6be0d8-37f7-4082-a654-96058edef306",
+          "quoteId": null
+        },
+        {
+          "id": "notification-3a454595-c8a1-4647-8bd3-d72aedee146f",
+          "clientId": "CLI-ALFA",
+          "event": "En producción",
+          "status": "Registrada",
+          "orderId": "order-3f6be0d8-37f7-4082-a654-96058edef306",
+          "quoteId": null
+        },
+        {
+          "id": "notification-87b162f7-0dc4-4bda-b1c8-6f0e34326fed",
+          "clientId": "CLI-ALFA",
+          "event": "Cotización enviada",
+          "status": "Registrada",
+          "orderId": null,
+          "quoteId": "quote-a355ef1c-cfe5-4053-b51b-3f51b11e269d"
+        }
+      ]
+    }
+  ],
+  "captures": [
+    {
+      "blockId": "B1",
+      "checkpoint": "C0",
+      "phase": "entrada",
+      "checkpointId": "B1-C0-entrada",
+      "filename": "B1-C0-entrada.png",
+      "role": "client",
+      "capturedAt": "2026-10-30T00:58:10.787Z"
+    },
+    {
+      "blockId": "B1",
+      "checkpoint": "C1",
+      "phase": "salida",
+      "checkpointId": "B1-C1-salida",
+      "filename": "B1-C1-salida.png",
+      "role": "client",
+      "capturedAt": "2026-10-30T00:58:11.639Z"
+    },
+    {
+      "blockId": "B2",
+      "checkpoint": "C1",
+      "phase": "entrada",
+      "checkpointId": "B2-C1-entrada",
+      "filename": "B2-C1-entrada.png",
+      "role": "manager",
+      "capturedAt": "2026-10-30T00:58:11.762Z"
+    },
+    {
+      "blockId": "B2",
+      "checkpoint": "C2",
+      "phase": "salida",
+      "checkpointId": "B2-C2-salida",
+      "filename": "B2-C2-salida.png",
+      "role": "manager",
+      "capturedAt": "2026-10-30T00:58:13.207Z"
+    },
+    {
+      "blockId": "B3",
+      "checkpoint": "C2",
+      "phase": "entrada",
+      "checkpointId": "B3-C2-entrada",
+      "filename": "B3-C2-entrada.png",
+      "role": "admin",
+      "capturedAt": "2026-10-30T00:58:13.507Z"
+    },
+    {
+      "blockId": "B3",
+      "checkpoint": "C3",
+      "phase": "salida",
+      "checkpointId": "B3-C3-salida",
+      "filename": "B3-C3-salida.png",
+      "role": "manager",
+      "capturedAt": "2026-10-30T00:58:15.132Z"
+    },
+    {
+      "blockId": "B4",
+      "checkpoint": "C3",
+      "phase": "entrada",
+      "checkpointId": "B4-C3-entrada",
+      "filename": "B4-C3-entrada.png",
+      "role": "operator",
+      "capturedAt": "2026-10-30T00:58:15.422Z"
+    },
+    {
+      "blockId": "B4",
+      "checkpoint": "C4",
+      "phase": "salida",
+      "checkpointId": "B4-C4-salida",
+      "filename": "B4-C4-salida.png",
+      "role": "operator",
+      "capturedAt": "2026-10-30T00:58:16.239Z"
+    },
+    {
+      "blockId": "B5",
+      "checkpoint": "C4",
+      "phase": "entrada",
+      "checkpointId": "B5-C4-entrada",
+      "filename": "B5-C4-entrada.png",
+      "role": "client",
+      "capturedAt": "2026-10-30T00:58:16.498Z"
+    },
+    {
+      "blockId": "B5",
+      "checkpoint": "C4",
+      "phase": "salida",
+      "checkpointId": "B5-C4-salida",
+      "filename": "B5-C4-salida.png",
+      "role": "client",
+      "capturedAt": "2026-10-30T00:58:16.648Z"
+    }
+  ],
+  "dataModel": {
+    "monetaryUnit": "ARS; cents son enteros y ARS es una cadena decimal sin separador regional.",
+    "amountMeaning": "La vista previa se afirma solo al quedar verificada en UI; la cotización formal proviene del snapshot del API.",
+    "blockAndCheckpoint": "B1-B5 identifican los cinco clips; C0-C4 son checkpoints de estado y nunca sustituyen el ID de bloque.",
+    "captureNaming": "Cada captura usa bloque, checkpoint y fase: B1-C0-entrada.png, ..., B5-C4-salida.png.",
+    "clipDurationsSeconds": [
+      {
+        "blockId": "B1",
+        "seconds": 58
+      },
+      {
+        "blockId": "B2",
+        "seconds": 58
+      },
+      {
+        "blockId": "B3",
+        "seconds": 58
+      },
+      {
+        "blockId": "B4",
+        "seconds": 58
+      },
+      {
+        "blockId": "B5",
+        "seconds": 58
+      }
+    ],
+    "voiceWordCounts": {
+      "B1": 84,
+      "B2": 82,
+      "B3": 78,
+      "B4": 86,
+      "B5": 83,
+      "total": 413
+    },
+    "clipRoles": {
+      "B3": [
+        "admin",
+        "manager minicorte"
+      ],
+      "B4": [
+        "operator solamente"
+      ],
+      "B5": [
+        "client portal solamente"
+      ]
+    }
+  }
+}
