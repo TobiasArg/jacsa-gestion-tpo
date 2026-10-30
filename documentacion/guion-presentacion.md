@@ -1,6 +1,6 @@
 # Guion de presentación — JACSA Gestión
 
-**Versión editorial:** alineada con el [plan de producción de 5 clips de 60 s](plan-produccion-video-60s.md) y con la UI del commit `9d5b831`. **Formato:** cinco clips autónomos de **60 s** cada uno y una versión continua de **300 s** (5:00). Los videos son **mudos**: no llevan voz, música ni pista de audio. La locución la hacen las cinco personas, **en vivo** durante la proyección o **grabada** por cada una sobre su clip. **Estado:** todavía no hay MP4, lectura humana ensayada ni locución grabada; las duraciones de voz son estimaciones, no mediciones.
+**Versión editorial:** alineada con el [plan de producción de 5 clips de 60 s](plan-produccion-video-60s.md) y con la UI del commit `9d5b831`. **Formato:** cinco clips autónomos de **60 s** cada uno y una versión continua de **300 s** (5:00). Los videos son **mudos**: no llevan voz, música ni pista de audio. La locución la hacen las cinco personas, **en vivo** durante la proyección o **grabada** por cada una sobre su clip. **Estado:** los seis MP4 mudos ya están entregados en [entregables/videos](../entregables/videos/): cinco clips de **60,000 s** y un continuo de **300,000 s**, H.264 1920 × 1080 a 30 fps y **sin pista de audio** (detalle en el [cierre](cierre-video.md)). Siguen pendientes la locución humana de Persona1–Persona5 y la revisión completa a velocidad normal por el grupo; las duraciones de voz son estimaciones, no mediciones.
 
 ## Reparto y presupuesto
 
@@ -95,4 +95,4 @@ Cada voz cabe en su ventana de 54 s (B5: 50,5 s). La diferencia con los 60 s del
 - «Calidad verificada» refleja la casilla que marca el operario al completar el total; no hay sensor ni ensayo físico automatizado.
 - «Registrada» describe que el aviso quedó guardado en el prototipo; no significa correo, WhatsApp ni otro envío externo.
 - La UI es una propuesta visual; este guion no afirma aprobación de usuarios, cumplimiento legal/accesibilidad, rendimiento medido ni uso productivo.
-- Los 60 s por clip y los 300 s totales son especificaciones de montaje; el tiempo de voz es una estimación. Falta que las cinco personas lean en voz alta, ensayen con cronómetro sobre los clips mudos y, si corresponde, graben su locución.
+- Los 60 s por clip y los 300 s totales son las duraciones verificadas de los MP4 entregados; el tiempo de voz sigue siendo una estimación. Falta que las cinco personas lean en voz alta, ensayen con cronómetro sobre los clips mudos y, si corresponde, graben su locución.

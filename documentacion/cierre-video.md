@@ -1,6 +1,6 @@
 # Cierre de documentación de video — JACSA Gestión
 
-**Fecha del cierre:** 2026-10-30 UTC. **Estado:** se produjeron y verificaron los **seis MP4 mudos** (cinco clips de 60,000 s y un continuo de 300,000 s) según [`plan-produccion-video-60s.md`](plan-produccion-video-60s.md), **grabados como pantalla continua** con `context.recordVideo` de Playwright. La locución sigue pendiente: cada persona del grupo la agrega en vivo o por separado. Las secciones 1 a 6 conservan el cierre documental anterior (guion de 400 palabras y Word), que no se modificó.
+**Fecha del cierre:** 2026-10-30 UTC. **Estado:** se produjeron y verificaron los **seis MP4 mudos** (cinco clips de 60,000 s y un continuo de 300,000 s) según [`plan-produccion-video-60s.md`](plan-produccion-video-60s.md), **grabados como pantalla continua** con `context.recordVideo` de Playwright. La locución humana de Persona1–Persona5 y la revisión completa a velocidad normal siguen pendientes: cada persona agrega su voz en vivo o por separado. El guion vigente tiene **401 palabras**, ya usa «Registrar solicitud» en B1 y el cierre «Prototipo funcional»; `Guion de presentacion.docx` se regeneró desde esa fuente (§0.8). Las secciones 1 a 6 son el **registro histórico** del cierre anterior (diseño 5 × 58 s = 290 s, guion de 400 palabras) y no describen el estado actual.
 
 ## 0. Entrega del video mudo (5 × 60 s + 300 s)
 
@@ -88,15 +88,24 @@ El saldo C4 (**24 g / 12 g**) se verificó al final en Stock con la pestaña de 
 
 ### 0.7 Pendientes y límites
 
-- **Locución:** los MP4 son mudos. La ventana de voz sugerida es 3,5–57,5 s por clip (hasta 54 s en B5). Para B1, decir «autoriza el registro de sus datos y registra la solicitud» en lugar de «acepta el uso de sus datos y envía» (plan §1.2).
+- **Locución:** los MP4 son mudos y la voz humana de Persona1–Persona5 sigue pendiente. La ventana de voz sugerida es 3,5–57,5 s por clip (hasta 54 s en B5). El texto de B1 del guion ya dice «autoriza el registro de sus datos y registra la solicitud» (plan §1.2).
 - **Revisión humana:** falta una reproducción completa a velocidad normal por el grupo (plan §9.3). La verificación automática cubre formato, frames, duración, ausencia de audio, decodificación, textos en la UI y la sincronía con el storyboard.
 - **Nitidez:** el screencast de Chromium pasa por JPEG y VP9 antes del H.264, así que la imagen es algo menos nítida que una captura directa; en la revisión al 100 % los textos y cifras se leen bien.
 - **Sincronía:** el inicio de cada tramo se toma del reloj de la pestaña; el error residual medido en la toma de prueba es de alrededor de 0,1 s y cae siempre dentro de un tramo quieto.
 - **Versionado:** los seis MP4 se versionan en commits locales de esta entrega; no hubo push.
 
+### 0.8 Sincronización documental con los MP4
+
+Tras integrar la captura se alinearon con los seis archivos entregados el [guion](guion-presentacion.md), el [storyboard](storyboard-video.md), el [ensayo](ensayo-video.md), la [guía de demostración](guia-demostracion.md) (§11), el [README](../README.md) y este cierre. [`diseno-video-5min.md`](diseno-video-5min.md) quedó rotulado como diseño histórico supersedido. No se modificaron los MP4, `SHA256SUMS`, `captura-marcas.json`, el script de grabación, la app, los tests ni las evidencias de QA.
+
+- **Guion vigente:** 401 palabras (B1 86, B2 82, B3 78, B4 77, B5 78), con «Registrar solicitud» en B1 y el cierre «JACSA Gestión · Prototipo funcional».
+- **Word:** solo `entregables/Guion de presentacion.docx` se regeneró desde `guion-presentacion.md`, llamando únicamente a la rutina del guion de `scripts/generar_entrega_prototipo.py` (sin `main()`, para no regenerar los otros tres Word). Se validaron ZIP/CRC, XML, texto completo y tablas contra la fuente; la locución del Word suma las mismas 401 palabras. La revisión visual en Word sigue pendiente porque no hay renderizador Word/PDF en este entorno.
+
 ---
 
-## 1. Alcance del ajuste
+> **Registro histórico.** Las secciones 1 a 6 documentan el cierre del ajuste de locución anterior, hecho sobre el diseño de 5 × 58 s = 290 s ([`diseno-video-5min.md`](diseno-video-5min.md)) y un guion de 400 palabras, antes de que existieran los MP4. Se conservan sin reescribir como evidencia; el estado vigente es el de la sección 0.
+
+## 1. Alcance del ajuste (histórico)
 
 Se aplicó un ajuste final de locución, no un rediseño del video ni de la aplicación:
 
@@ -107,7 +116,7 @@ Se aplicó un ajuste final de locución, no un rediseño del video ni de la apli
 
 No se modificaron la aplicación, sus tests ni sus paquetes. La entrega sí actualiza scripts documentales, sus pruebas dedicadas y los Word derivados; conserva las fuentes originales.
 
-## 2. Archivos actualizados
+## 2. Archivos actualizados (histórico)
 
 | Archivo | Cambio |
 |---|---|
@@ -119,9 +128,9 @@ No se modificaron la aplicación, sus tests ni sus paquetes. La entrega sí actu
 | `evidencias-prototipo.md`, `capitulo-4-validacion.md`, `qa-final.md`, `matriz-validacion-flujos.md` | Adendas actuales sin borrar resultados históricos. |
 | `../scripts/generar_documentos.py`, `../scripts/generar_entrega_prototipo.py`, `../scripts/entrega/` | Generación, saneamiento de paquetes autónomos y pruebas dedicadas. |
 
-El presupuesto de montaje no cambió: **5 clips × 58 s = 290 s**. El objetivo editorial sigue en 285–295 s y el máximo absoluto en 300 s. Son presupuestos, no duraciones medidas.
+En aquel diseño, el presupuesto de montaje no cambió: **5 clips × 58 s = 290 s**. El objetivo editorial sigue en 285–295 s y el máximo absoluto en 300 s. Son presupuestos, no duraciones medidas.
 
-## 3. Conteo final de locución
+## 3. Conteo final de locución (histórico)
 
 Método: palabras habladas dentro de cada bloque `LOC`, separadas por espacios y con al menos una letra; no se leen etiquetas, rótulos, acciones ni notas.
 
@@ -136,7 +145,7 @@ Método: palabras habladas dentro de cada bloque `LOC`, separadas por espacios y
 
 El total de **400 palabras** queda dentro del objetivo de 380–420. La locución todavía debe leerse en voz alta y ensayarse con cronómetro; el conteo y los 58 s por clip no son una medición humana.
 
-## 4. QA de referencia — no reejecutada en esta etapa
+## 4. QA de referencia — no reejecutada en esta etapa (histórico)
 
 Las cifras siguientes provienen del reporte [`qa-final.md`](qa-final.md) y de `evidencias/qa-final/validation.json`. **No se reejecutaron** durante este ajuste documental.
 
@@ -150,7 +159,7 @@ Las cifras siguientes provienen del reporte [`qa-final.md`](qa-final.md) y de `e
 
 F17 y F18 son observaciones puntuales comunicadas por coordinación, **fuera de los 50 casos**: F17 verificó la métrica «Pedidos demorados» con fixture temporal; F18 verificó catálogo, búsqueda y limpieza en Chromium headless. No son E2E persistentes y F18 no tiene captura. Se mantienen como reportes de coordinación, no como cobertura adicional de la suite.
 
-## 5. Entregables Word y capturas
+## 5. Entregables Word y capturas (histórico)
 
 Los **4 Word** de `entregables/` fueron regenerados tras el ajuste final de locución:
 
@@ -180,10 +189,10 @@ Los originales no se modificaron. Sus hashes SHA-256 se comprobaron en lectura:
 | `TPO General.docx` | `09517ee799de479a83f791fc49656d1ee43690284c4922ab264af726c8f5ff5f` |
 | `TPO General - Validacion.pages` | `c44e3a504a7a0c1a431cfcd0aed8346d31b3c41da6e49d26cf9435ff261685c2` |
 
-## 6. Pendientes y límites
+## 6. Pendientes y límites (histórico)
 
 - **Word final:** regenerado y validado estructuralmente; pendiente revisión visual en Word.
 - **Commit:** entrega cohesiva en un commit local, después de revisar diff, estado y validación. Su referencia se comunica en el resultado de la tarea; no se realiza push.
-- **Ensayos:** no hubo lectura humana cronometrada, ensayo de voz, grabación ni MP4. Los conteos y los 290 s son presupuesto editorial.
-- **Historial:** el diseño y los JSON/fixtures de QA conservan su presupuesto previo de 413 palabras; no se altera la evidencia histórica para simular que midió el guion final. El vigente es 400, tal como indican el README, guion y storyboard.
+- **Ensayos:** en ese momento no hubo lectura humana cronometrada, ensayo de voz, grabación ni MP4; los conteos y los 290 s eran presupuesto editorial. Hoy los MP4 existen (sección 0), pero la lectura humana sigue pendiente.
+- **Historial:** el diseño y los JSON/fixtures de QA conservan su presupuesto previo de 413 palabras; no se altera la evidencia histórica para simular que midió el guion final. En ese cierre el vigente era 400; el guion actual tiene 401 (sección 0.8).
 - **Cifras de estado:** el consumo 576/288 g y el saldo 24/12 g siguen siendo verificables en la guía, el storyboard y el JSON; no se locutan en B4 ni se atribuyen a una pantalla que no los muestra.

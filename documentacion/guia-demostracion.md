@@ -1,6 +1,6 @@
 # Guía de demostración — JACSA Gestión
 
-**Actualizado:** 2026-10-30 UTC. **Estado:** prototipo local implementado y QA final registrada. La corrida final informa 48/48 pruebas backend/API, build correcto, 50/50 E2E (27 navegador y 23 API-only) y 3/3 harness; el detalle y sus límites constan en [QA final](qa-final.md). Esta guía reproduce el recorrido con los controles actuales de `src/`; no declara que se haya ensayado con voz humana ni grabado video.
+**Actualizado:** 2026-10-30 UTC. **Estado:** prototipo local implementado y QA final registrada. La corrida final informa 48/48 pruebas backend/API, build correcto, 50/50 E2E (27 navegador y 23 API-only) y 3/3 harness; el detalle y sus límites constan en [QA final](qa-final.md). Esta guía reproduce el recorrido con los controles actuales de `src/`; no declara que se haya ensayado con voz humana. Los seis MP4 mudos del video (5 × 60 s y continuo de 300 s) están en [`entregables/videos/`](../entregables/videos/); ver §11.
 
 ## 1. Puesta en marcha
 
@@ -87,7 +87,7 @@ Notas:
 - Para la demo habitual, abrir **`http://127.0.0.1:3001`**; para grabación, usar **`http://127.0.0.1:3002`** según el paso anterior. Usar perfiles de navegador separados entre instancias: la cookie se limita al host, no al puerto, por lo que iniciar sesión en 3002 desde el perfil que usa 3001 puede reemplazar su token. Dentro de cada perfil no mezclar con `localhost` ni cambiar host.
 - Usar un perfil, contexto o navegador por rol. En Chrome, dos ventanas de incógnito del mismo perfil **comparten cookies**: no asumirlas independientes. Usar perfiles distintos o navegadores distintos.
 - Si se usan pestañas del mismo navegador, hacer logout/login secuencial y verificar nombre y rol visibles. No describirlo como un flujo de un solo clic.
-- Para los clips de 58 s, dejar los perfiles preautenticados: el login queda fuera de cámara. El presupuesto de cada bloque incluye rótulo, acción/voz y transición/cierre; no aplica la antigua meta de ~10 s de acción.
+- Para los clips de 60 s, dejar los perfiles preautenticados: el login queda fuera de cámara. Cada clip incluye rótulo, acción/voz y salida; no aplica la antigua meta de ~10 s de acción.
 - No usar Vite en 5174 para mutaciones: el validador de origen del API no acepta ese puerto. Grabar con la UI compilada servida por la instancia seleccionada.
 
 ## 6. Reinicio de la demo
@@ -122,7 +122,7 @@ Se conservan **7 capturas anteriores** en `evidencias/prototipo/`:
 
 La evidencia más reciente es la corrida final registrada en [`qa-final.md`](qa-final.md): incluye siete capturas integradas y diez PNG de entrada/salida B1–B5/C0–C4 en [`evidencias/qa-final/rehearsal/`](../evidencias/qa-final/rehearsal/), junto con el [`rehearsal.json`](../evidencias/qa-final/rehearsal/rehearsal.json). Son capturas reales de UI automatizada; el JSON identifica en cada una el rol, bloque y checkpoint. No son fotogramas de un video ni mediciones de voz.
 
-La distribución que se llevará a grabación coloca el plan de máquina al cierre de B3 y deja B4 para el operario. Esto sigue las acciones y capturas de la QA final (minicorte de Rodrigo en B3 y entrada del operario en C3); `plan-qa-video.md` §8 conserva como antecedente el storyboard anterior que ubicaba planificación en B4. No se inventaron capturas para resolver esa diferencia.
+La distribución grabada en los MP4 coloca el plan de máquina al cierre de B3 y deja B4 para el operario. Esto sigue las acciones y capturas de la QA final (minicorte de Rodrigo en B3 y entrada del operario en C3); `plan-qa-video.md` §8 conserva como antecedente el storyboard anterior que ubicaba planificación en B4. No se inventaron capturas para resolver esa diferencia.
 
 ## 9. Privacidad, diseño y límites
 
@@ -149,11 +149,13 @@ La distribución que se llevará a grabación coloca el plan de máquina al cier
 - [ ] Stock 400/200; ingreso 200/100; faltantes 176/88.
 - [ ] Dos pedidos del seed sin consumo de INS-NEGRO/INS-ALMA.
 - [ ] Controles reales y diálogos verificados en el navegador.
-- [ ] Ensayo del montaje por bloques de 58 s, incluidos rótulos y transiciones; objetivo total 285–295 s y máximo 300 s.
+- [ ] Ensayo de voz sobre los clips mudos de 60 s (rótulo y salida incluidos) y sobre el continuo de 300 s.
 
 ## 11. Grabación segmentada y regrabación
 
-Para integrar el diseño definitivo de cinco clips autoconclusivos y el procedimiento de pregrabación, replay y regrabación C0–C4, seguir [`diseno-video-5min.md`](diseno-video-5min.md), [`storyboard-video.md`](storyboard-video.md), [`guion-presentacion.md`](guion-presentacion.md) y [`ensayo-video.md`](ensayo-video.md). Cada bloque dura 58 s en el presupuesto (290 s total, incluidos títulos y transiciones); el grupo debe ensayar con cronómetro. Playwright automatizó acciones y checkpoints, pero esa duración no demuestra un ensayo humano ni un video existente.
+El video vigente sigue el [plan de producción 5 × 60 s](plan-produccion-video-60s.md), el [storyboard](storyboard-video.md), el [guion](guion-presentacion.md) (401 palabras) y el [ensayo](ensayo-video.md). Los seis MP4 mudos ya están en [`entregables/videos/`](../entregables/videos/): `jacsa-60s-1-cliente-solicitud.mp4`, `jacsa-60s-2-comercial-pedido.mp4`, `jacsa-60s-3-abastecimiento-plan.mp4`, `jacsa-60s-4-operario-produccion.mp4` y `jacsa-60s-5-cliente-seguimiento.mp4` (60,000 s cada uno) y `jacsa-300s-continuo.mp4` (300,000 s); H.264 1920 × 1080 a 30 fps, sin pista de audio. Se grabaron con `prototipo/scripts/video/record-demo-video.mjs` sobre el build `browser-demo` en un contexto aislado, sin la instancia 3002 ni reset; el procedimiento reproducible está en el [cierre](cierre-video.md) §0.4. Faltan la locución humana de Persona1–Persona5 y la revisión completa a velocidad normal. [`diseno-video-5min.md`](diseno-video-5min.md) (5 × 58 s = 290 s) es el diseño histórico supersedido.
+
+El procedimiento siguiente de la instancia 3002 queda para grabaciones manuales o ensayos con el modo servidor; no se usó para los MP4 entregados.
 
 Antes de cualquier reset para grabar, verificar que se usa la instancia separada en 3002 y su base `data/grabacion.sqlite`, y conseguir autorización expresa. No reiniciar `127.0.0.1:3001` ni `data/jacsa.sqlite`; no ejecutar SQL ni restaurar el JSON como snapshot. Para una regrabación se reinicia solo la base de grabación y se reproducen los bloques previos por UI (o endpoints ordinarios solo para preparar fuera de cámara); los IDs se vuelven a obtener en cada ejecución.
 

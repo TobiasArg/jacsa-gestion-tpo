@@ -1,17 +1,28 @@
 # Ensayo de locución y preparación del video — JACSA Gestión
 
-**Estado:** plan de ensayo y de locución, no constancia de que el grupo haya ensayado, grabado voz humana o producido un MP4. La base es el [plan de producción 5 × 60 s](plan-produccion-video-60s.md): cinco clips **mudos** de **60 s** cada uno y una versión continua de **300 s**, capturados de forma automatizada sobre la UI de `9d5b831`. Ningún video incorpora voz ni música: la locución la hacen las cinco personas, **en vivo** o **grabada**, siguiendo el [guion](guion-presentacion.md) (401 palabras) y los cues del [storyboard](storyboard-video.md).
+**Estado:** los seis MP4 **mudos** del [plan de producción 5 × 60 s](plan-produccion-video-60s.md) ya están entregados en [`entregables/videos/`](../entregables/videos/): cinco clips de **60,000 s** y un continuo de **300,000 s**, H.264 1920 × 1080 a 30 fps, sin pista de audio, grabados como pantalla continua sobre la UI de `9d5b831` (verificación en el [cierre](cierre-video.md)). Este documento es el plan de ensayo y de locución: no es constancia de que el grupo haya ensayado, grabado voz humana ni revisado los clips completos a velocidad normal. Ningún video incorpora voz ni música: la locución la hacen las cinco personas, **en vivo** o **grabada**, siguiendo el [guion](guion-presentacion.md) (401 palabras) y los cues del [storyboard](storyboard-video.md).
 
 ## 1. Cómo se obtienen los clips
 
-La captura no se hace a mano ni sobre la demo habitual. Según el [plan de producción](plan-produccion-video-60s.md) (§3 y §7):
+La captura no se hace a mano ni sobre la demo habitual. Sigue el [plan de producción](plan-produccion-video-60s.md) (§3 y §7) y la ejecuta `prototipo/scripts/video/record-demo-video.mjs` (comandos en el [cierre](cierre-video.md) §0.4):
 
-1. Se usa el build estático `browser-demo` de `9d5b831`, servido con `vite preview` en `127.0.0.1:4291` (`--strictPort`). No se usan 3001, 3002, 4190 ni 5173, y no se detiene ningún proceso ajeno.
+1. Se usa el build estático `browser-demo` de `9d5b831`, servido por el servidor estático propio del script en `127.0.0.1` con puerto efímero (el plan proponía `vite preview` en 4291). No se usan 3001, 3002, 4190 ni 5173, y no se detiene ningún proceso ajeno.
 2. Un contexto **nuevo** de Playwright, sin `storageState`, arranca con almacenamiento vacío: el seed C0 se recrea solo. **No hay reset**, no se tocan bases SQLite y toda request a `/api/` se aborta.
 3. Hay una pestaña por rol (`cliente`, `rodrigo`, `lorena`, `operario`) con login fuera de cámara. Las cinco tomas salen de una sola corrida, en orden C0 → C4.
 4. El montaje produce `jacsa-60s-1…5-*.mp4` (1800 frames cada uno) y `jacsa-300s-continuo.mp4` (9000 frames), todos sin pista de audio.
 
-La coordinación ya autorizó un `npm ci` aislado en `prototipo/` y el uso de los binarios ffmpeg/ffprobe b6.1.1 verificados, solo para la producción local de estos videos: no se instalan globalmente ni se modifica `PATH`. Sigue pendiente ejecutar la captura, montar los clips y pasar los controles de calidad; hasta entonces no existe ningún MP4, y los que se produzcan seguirán sin voz ni música. No ejecutar `tests/e2e/rehearsal.spec.ts`, que sobrescribe la evidencia histórica.
+La captura, el montaje y los controles de calidad ya se ejecutaron con el ffmpeg b6.1.1 verificado y autorizado por la coordinación, invocado por ruta absoluta sin instalarlo globalmente ni modificar `PATH`. Los seis archivos entregados son:
+
+| Archivo | Clip | Duración |
+|---|---|---:|
+| `jacsa-60s-1-cliente-solicitud.mp4` | B1 · C0 → C1 | 60,000 s |
+| `jacsa-60s-2-comercial-pedido.mp4` | B2 · C1 → C2 | 60,000 s |
+| `jacsa-60s-3-abastecimiento-plan.mp4` | B3 · C2 → C3 | 60,000 s |
+| `jacsa-60s-4-operario-produccion.mp4` | B4 · C3 → C4 | 60,000 s |
+| `jacsa-60s-5-cliente-seguimiento.mp4` | B5 · C4 → C4 | 60,000 s |
+| `jacsa-300s-continuo.mp4` | B1–B5 unidos | 300,000 s |
+
+Todos son H.264 1920 × 1080 a 30 fps, sin pista de audio, voz ni música. Una nueva regrabación solo hace falta si se cambia la UI o el storyboard. No ejecutar `tests/e2e/rehearsal.spec.ts`, que sobrescribe la evidencia histórica.
 
 ## 2. Secuencia C0–C4 que deben mostrar los clips
 
@@ -53,8 +64,9 @@ Reparto fijo, una persona por clip:
 
 ## 5. Lista del equipo antes de presentar
 
-- [ ] Los seis MP4 existen, pasaron los controles del plan (§9) y no tienen pista de audio.
-- [ ] B1–B5 duran 60 s cada uno y el continuo dura 300 s.
+- [x] Los seis MP4 existen, pasaron los controles automáticos del plan (§9) y no tienen pista de audio.
+- [x] B1–B5 duran 60,000 s cada uno y el continuo dura 300,000 s.
+- [ ] El grupo reprodujo los seis archivos completos a velocidad normal y confirmó lo que se ve.
 - [ ] B1 muestra **Registrar solicitud**, «Autorizo el registro de estos datos para la solicitud.» y «No se notificó al equipo comercial.».
 - [ ] La tarjeta final de B5 dice «JACSA Gestión · Prototipo funcional» y «Los avisos quedan registrados; no se envían correos ni mensajes.».
 - [ ] Ningún rótulo, tarjeta ni locución contiene IDs, fechas fijas ni textos ajenos al prototipo.
@@ -64,4 +76,4 @@ Reparto fijo, una persona por clip:
 
 ## 6. Evidencia y pendientes
 
-La QA final y la QA del build `browser-demo` comprobaron el flujo con pruebas automatizadas; sus tiempos y capturas no son tiempos de video ni prueban que una persona leyó el guion. Las dependencias (`npm ci` aislado) y el encoder (ffmpeg/ffprobe b6.1.1 verificados, de uso local y sin cambios en `PATH`) ya están autorizados. Pendiente: ejecutar la captura, montar los clips mudos, pasar los controles de calidad del plan, ensayar las cinco voces sobre los clips mudos y, si se elige, grabar cada locución.
+La QA final y la QA del build `browser-demo` comprobaron el flujo con pruebas automatizadas; sus tiempos y capturas no son tiempos de video ni prueban que una persona leyó el guion. La captura, el montaje y los controles automáticos de los clips mudos están hechos (ver [cierre](cierre-video.md) §0). Pendiente: la revisión completa de los seis MP4 a velocidad normal por el grupo, ensayar las cinco voces sobre los clips mudos y, si se elige, grabar cada locución.

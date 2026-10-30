@@ -43,12 +43,14 @@ Abrir **http://127.0.0.1:3002** y verificar `/api/health`. `JACSA_DB` es relativ
 
 ## Presentación y entregables
 
-- **[Guion vigente para cinco personas](documentacion/guion-presentacion.md):** 400 palabras de locución distribuidas entre Persona1–Persona5; cinco clips autoconclusivos, 58 s por bloque y adaptación opcional a cuatro personas.
-- **[Storyboard de video](documentacion/storyboard-video.md):** presupuesto de 290 s con títulos/transiciones, checkpoints C0–C4 y referencias a las capturas reales de QA.
-- **[Ensayo y regrabación](documentacion/ensayo-video.md):** preparación con la base aislada `data/grabacion.sqlite` y replay de los bloques previos para reconstruir cada checkpoint, sin tocar la base habitual.
+- **[Video mudo](entregables/videos/):** cinco clips de 60,000 s (`jacsa-60s-1-cliente-solicitud.mp4`, `jacsa-60s-2-comercial-pedido.mp4`, `jacsa-60s-3-abastecimiento-plan.mp4`, `jacsa-60s-4-operario-produccion.mp4`, `jacsa-60s-5-cliente-seguimiento.mp4`) y el continuo `jacsa-300s-continuo.mp4` de 300,000 s; H.264 1920 × 1080 a 30 fps, sin pista de audio. Pendientes: la locución humana de Persona1–Persona5 y la revisión completa a velocidad normal. Formato, hashes y captura en el [cierre de video](documentacion/cierre-video.md); diseño en el [plan de producción 5 × 60 s](documentacion/plan-produccion-video-60s.md).
+- **[Guion vigente para cinco personas](documentacion/guion-presentacion.md):** 401 palabras de locución distribuidas entre Persona1–Persona5, una por clip de 60 s; B1 usa «Registrar solicitud» y el cierre, «Prototipo funcional».
+- **[Storyboard de video](documentacion/storyboard-video.md):** cues por segundo de los cinco clips de 60 s (300 s en total), checkpoints C0–C4 y referencias a las capturas de QA.
+- **[Ensayo de locución](documentacion/ensayo-video.md):** cómo ensayar y, si se elige, grabar la voz sobre los clips mudos.
+- **[Diseño de 5 minutos](documentacion/diseno-video-5min.md):** diseño histórico supersedido (5 × 58 s = 290 s, 413 palabras); se conserva como antecedente.
 - **[Guía de demostración](documentacion/guia-demostracion.md):** puesta en marcha, controles, recorrido, reset y sincronización entre perfiles.
 - **[QA final](documentacion/qa-final.md):** registro de resultados automatizados y sus límites.
-- **[Guion de presentación Word](entregables/Guion%20de%20presentacion.docx):** regenerado con el guion final de 400 palabras; ZIP/XML y contenido verificados, revisión visual en Word pendiente. Ver [cierre de entrega](documentacion/cierre-video.md).
+- **[Guion de presentación Word](entregables/Guion%20de%20presentacion.docx):** regenerado desde el guion vigente de 401 palabras; ZIP/XML/CRC y contenido verificados, revisión visual en Word pendiente. Ver [cierre de video](documentacion/cierre-video.md).
 - **[TPO General - Validacion.docx](entregables/TPO%20General%20-%20Validacion.docx):** TPO original, adenda al punto 3, capítulo 4 actualizado y anexo con siete capturas.
 - **[Seccion 4 - Validacion.docx](entregables/Seccion%204%20-%20Validacion.docx):** capítulo y anexos independientes.
 - **[Prototipo - Evidencias.docx](entregables/Prototipo%20-%20Evidencias.docx):** pruebas registradas y capturas.

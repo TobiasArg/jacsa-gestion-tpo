@@ -1,5 +1,7 @@
 # Diseño del video de 5 minutos — JACSA Gestión
 
+> **Diseño histórico, supersedido.** Este documento describe el diseño anterior de 5 × 58 s = 290 s y su locución de 413 palabras. No es el presupuesto vigente: el video entregado sigue el [plan de producción 5 × 60 s](plan-produccion-video-60s.md), el [storyboard](storyboard-video.md) y el [guion](guion-presentacion.md) de 401 palabras, y sus seis MP4 mudos están en [`entregables/videos/`](../entregables/videos/) (ver [cierre](cierre-video.md)). Los rótulos y el cierre citados aquí (incluido el texto «académico» / «datos sintéticos») ya no se usan. Se conserva como antecedente.
+
 **Tipo:** diseño escrito de locución y storyboard. No modifica la app, las pruebas, el guion actual, los documentos Word/Pages ni el README; la integración queda para T6. **Fecha:** 2026-10-29. **Base:** rama `TobiasArg/jacsa-video-diseno` sobre `cf28449`.
 
 **Estado de la evidencia.** Según la coordinación, los flujos que aparecen aquí están validados en `main`: backend **48/48**, suite E2E **24/24** (23 casos en navegador y 1 por API) y build correcto, registrado el 2026-10-30. Este documento no repite esas corridas. No mide tiempos, no se ensayó con voz humana y no sale de una grabación. Las duraciones son **presupuestos de diseño**, no mediciones. La QA técnica en paralelo medirá la interacción y los checkpoints, y T6 hará el ajuste cronometrado final.

@@ -1,12 +1,12 @@
 # Storyboard del video — cinco clips autónomos de 60 s
 
-**Estado:** storyboard de montaje alineado con el [plan de producción 5 × 60 s](plan-produccion-video-60s.md) y con la UI de `9d5b831`. Todavía no existe ningún MP4, toma ni locución grabada. Los tiempos son **especificaciones de montaje** (frames exactos a 30 fps), no mediciones. Los fotogramas enlazados al final son capturas históricas de Playwright de la QA final, anteriores a `9d5b831`; sirven para cotejar rol y estado, no como copy vigente ni como fotogramas del video.
+**Estado:** storyboard de montaje alineado con el [plan de producción 5 × 60 s](plan-produccion-video-60s.md) y con la UI de `9d5b831`. Los seis MP4 mudos que lo implementan están en [`entregables/videos/`](../entregables/videos/) (5 × 60,000 s y continuo de 300,000 s, H.264 1080p a 30 fps, sin audio); falta la locución humana y la revisión completa a velocidad normal. Los tiempos son **especificaciones de montaje** (frames exactos a 30 fps) que la grabación respetó con un desfase máximo de 0,002 s por beat; no son mediciones de voz. Los fotogramas enlazados al final son capturas históricas de Playwright de la QA final, anteriores a `9d5b831`; sirven para cotejar rol y estado, no como copy vigente ni como fotogramas del video.
 
 ## Regla editorial
 
 Cinco clips editados de **60 s exactos** (1800 frames) cada uno, con rótulo, acción y cierre incluidos: **5 × 60 = 300 s**. La versión continua es la sucesión de los cinco clips, sin recodificar, y dura **300 s exactos** (9000 frames). Los seis archivos son **mudos**: sin voz, sin música y sin pista de audio. La voz la ponen Persona1–Persona5, en vivo o grabada, siguiendo los cues de este documento. La locución suma **401 palabras** ([guion](guion-presentacion.md)); falta leerla y cronometrarla sobre los clips.
 
-Respecto del diseño anterior de 5 × 58 s: cada clip gana 2 s de quieto final para respirar en la locución, el botón de B1 es **Registrar solicitud** y el cierre de B5 usa solo «Prototipo funcional». El minicorte de planificación de Rodrigo sigue en **B3** y B4 queda solo para el operario.
+Respecto del diseño histórico de 5 × 58 s ([`diseno-video-5min.md`](diseno-video-5min.md), supersedido): cada clip gana 2 s de quieto final para respirar en la locución, el botón de B1 es **Registrar solicitud** y el cierre de B5 usa solo «Prototipo funcional». El minicorte de planificación de Rodrigo sigue en **B3** y B4 queda solo para el operario.
 
 ## Cifras de la historia
 
@@ -186,4 +186,4 @@ Entrada: [B5-C4-entrada.png](../evidencias/qa-final/rehearsal/B5-C4-entrada.png)
 - B3 contiene el minicorte de Lorena a Rodrigo; B4 queda solo para el operario; B5 solo muestra el portal del cliente.
 - Mantener los importes legibles y quietos al menos 2 s; no acelerar cifras. Los indicadores bajo mínimo no generan avisos ni órdenes de compra.
 - Ningún rótulo, tarjeta ni locución dice que la solicitud llega al equipo comercial ni que un aviso se envió: «Registrada» solo describe que quedó guardado en el prototipo.
-- No afirmar que la voz se ensayó, que se aprobó el montaje o que existe MP4 hasta que ocurra.
+- Los MP4 mudos existen y están verificados; no afirmar que la voz se ensayó o grabó, ni que el grupo revisó el montaje completo, hasta que ocurra.
