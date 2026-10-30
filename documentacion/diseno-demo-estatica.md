@@ -4,7 +4,7 @@ Estado: diseño previo a implementación. No cambia el modo API actual (Express 
 
 ## Decisión
 
-- Build `browser-demo` (`vite build --mode browser-demo`) con `VITE_BROWSER_DEMO=1` en `.env.browser-demo`. Sin la flag el bundle es idéntico al actual.
+- Build `browser-demo` (`vite build --mode browser-demo`). `vite.config.ts` fija la flag con `define`: `'import.meta.env.VITE_BROWSER_DEMO': JSON.stringify(mode === 'browser-demo' ? 'true' : 'false')`. No se usan archivos `.env` (evita reglas de ignore y confusión con secretos). Con `'false'` el bundle es idéntico al actual.
 - Persistencia: `localStorage` (datos de negocio) + `sessionStorage` (perfil activo por pestaña). Sin Turso, Supabase ni servicio pago/cuenta.
 - Alcance honesto: los datos viven en este navegador y este origen; no se comparten entre dispositivos ni navegadores y **no hay seguridad real** (cualquiera puede editar el storage). Es una demo, no un sistema multiusuario.
 
@@ -13,7 +13,7 @@ Estado: diseño previo a implementación. No cambia el modo API actual (Express 
 `src/api.ts` mantiene `ApiError`, `request<T>` y todos los métodos (`get`, `post`, `me`, `catalog`, `bootstrap`, `estimate`) con la misma firma. Solo cambia el interior de `request`:
 
 ```ts
-if (import.meta.env.VITE_BROWSER_DEMO === '1') {
+if (import.meta.env.VITE_BROWSER_DEMO === 'true') {
   const { demoRequest } = await import('./demo/transport'); // import dinámico: el modo API no carga el engine
   const { status, body } = await demoRequest(path, method, body);
   // mismo tratamiento que fetch: !2xx → ApiError(body.error, status, body.code)
@@ -53,7 +53,7 @@ Errores semánticos: `DemoError(status, code, message)` con códigos estables (`
 
 - `login` valida usuario/contraseña del seed y guarda `{userId}` en `sessionStorage['jacsa-demo:session']`; `logout` lo borra. Cada pestaña puede tener un rol distinto (manager en una, cliente en otra) sobre los mismos datos.
 - No hay cookie. Deshabilitar un usuario invalida su perfil en la siguiente request (el engine relee el usuario y responde 401).
-- UI (solo en modo demo): badge persistente "Demo local · datos en este navegador"; se reemplazan los textos "Sesión segura", "Acceso seguro", "API con sesión segura" y "Almacenamiento SQLite local" por equivalentes honestos. No se toca el estilo glass existente.
+- UI (solo cuando `import.meta.env.VITE_BROWSER_DEMO === 'true'`): badge persistente "Demo local · datos en este navegador"; se reemplazan los textos "Sesión segura", "Acceso seguro", "API con sesión segura" y "Almacenamiento SQLite local" por equivalentes honestos. No se toca el estilo glass existente.
 
 ## Cobertura funcional
 
