@@ -13,6 +13,8 @@ from statistics import median
 from xml.etree import ElementTree as ET
 from xml.sax.saxutils import escape
 
+from entrega.docx_minimal import sanitize_standalone_docx
+
 
 ROOT = Path(__file__).resolve().parent.parent
 SOURCE_DOCX = ROOT / "TPO General.docx"
@@ -75,6 +77,9 @@ def parse_markdown(path: Path) -> list[tuple[str, object]]:
     i = 0
     while i < len(lines):
         line = lines[i]
+        if re.fullmatch(r"\s*<!--\s*/?LOC-B\d+\s*-->\s*", line, re.IGNORECASE):
+            i += 1
+            continue
         if not line.strip():
             i += 1
             continue
@@ -116,7 +121,8 @@ def parse_markdown(path: Path) -> list[tuple[str, object]]:
         i += 1
         while i < len(lines) and lines[i].strip():
             if (
-                re.match(r"^\s{0,3}#{1,6}\s+", lines[i])
+                re.fullmatch(r"\s*<!--\s*/?LOC-B\d+\s*-->\s*", lines[i], re.IGNORECASE)
+                or re.match(r"^\s{0,3}#{1,6}\s+", lines[i])
                 or LIST_LINE.match(lines[i])
                 or lines[i].lstrip().startswith(">")
                 or (lines[i].lstrip().startswith("|") and lines[i].rstrip().endswith("|"))
@@ -558,6 +564,13 @@ def main() -> None:
         (integrated_path, integrated_replacements),
         (standalone_path, standalone_replacements),
     ):
+        if target == standalone_path:
+            part_count, image_count = sanitize_standalone_docx(target)
+            print(
+                f"{target.relative_to(ROOT)}: paquete autónomo mínimo; "
+                f"{part_count} entradas, {image_count} imágenes alcanzables"
+            )
+            continue
         with zipfile.ZipFile(target, "r") as output:
             image_count = sum(1 for name in output.namelist() if name.startswith("word/media/"))
         print(f"{target.relative_to(ROOT)}: ZIP válido; {image_count} entradas multimedia preservadas; título OOXML actualizado")

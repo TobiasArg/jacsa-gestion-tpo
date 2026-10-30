@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import importlib.util
 import os
+import posixpath
 import re
 import struct
 import sys
@@ -27,7 +28,7 @@ EVIDENCE_DOCX = OUT / "Prototipo - Evidencias.docx"
 CHAPTER_MD = DOCS / "capitulo-4-validacion.md"
 SCRIPT_MD = DOCS / "guion-presentacion.md"
 EVIDENCE_MD = DOCS / "evidencias-prototipo.md"
-SCREENSHOT_DIR = ROOT / "evidencias" / "prototipo"
+SCREENSHOT_DIR = ROOT / "evidencias" / "qa-final"
 SCREENSHOTS = (
     "01cotizador.png",
     "02cotizacion.png",
@@ -43,8 +44,9 @@ WP = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
 A = "http://schemas.openxmlformats.org/drawingml/2006/main"
 PIC = "http://schemas.openxmlformats.org/drawingml/2006/picture"
 R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+PACKAGE_REL = "http://schemas.openxmlformats.org/package/2006/relationships"
+CONTENT_TYPES_NS = "http://schemas.openxmlformats.org/package/2006/content-types"
 IMAGE_REL_TYPE = f"{R}/image"
-PNG_DEFAULT = b'<Default Extension="png" ContentType="image/png"/>'
 MAX_IMAGE_WIDTH_DXA = 8504
 MAX_IMAGE_HEIGHT_EMU = 6_000_000
 EMU_PER_PIXEL = 9525
@@ -137,6 +139,7 @@ def centered_caption(generator, text: str) -> str:
 
 def add_screenshots(generator, document_xml: bytes, rels_xml: bytes, content_types_xml: bytes):
     rels_root = ET.fromstring(rels_xml)
+    content_root = ET.fromstring(content_types_xml)
     existing_ids = [node.attrib.get("Id", "") for node in rels_root]
     if len(existing_ids) != len(set(existing_ids)):
         raise ValueError("El DOCX ya contiene Id de relación duplicados")
@@ -170,32 +173,21 @@ def add_screenshots(generator, document_xml: bytes, rels_xml: bytes, content_typ
         )
         next_drawing_id += 1
 
-    rels_text = rels_xml.decode("utf-8")
-    close_match = re.search(r"</(?:[A-Za-z_][\w.-]*:)?Relationships\s*>", rels_text)
-    if close_match is None:
-        raise ValueError("No se encontró cierre Relationships en word/_rels/document.xml.rels")
-    relationship_xml = "".join(
-        f'<Relationship Id="{rid}" Type="{IMAGE_REL_TYPE}" Target="{target}"/>'
-        for rid, target in relationships
-    )
-    rels_updated = (rels_text[: close_match.start()] + relationship_xml + rels_text[close_match.start() :]).encode("utf-8")
-    ET.fromstring(rels_updated)
+    for relationship_id, target in relationships:
+        ET.SubElement(
+            rels_root,
+            f"{{{PACKAGE_REL}}}Relationship",
+            {"Id": relationship_id, "Type": IMAGE_REL_TYPE, "Target": target},
+        )
+    rels_updated = ET.tostring(rels_root, encoding="utf-8", xml_declaration=True)
 
-    content_root = ET.fromstring(content_types_xml)
     has_png = any(
         node.tag.rsplit("}", 1)[-1] == "Default" and node.attrib.get("Extension", "").lower() == "png"
         for node in content_root
     )
-    content_updated = content_types_xml
     if not has_png:
-        content_text = content_types_xml.decode("utf-8")
-        type_close = re.search(r"</(?:[A-Za-z_][\w.-]*:)?Types\s*>", content_text)
-        if type_close is None:
-            raise ValueError("No se encontró cierre Types en [Content_Types].xml")
-        content_updated = (
-            content_text[: type_close.start()] + PNG_DEFAULT.decode("ascii") + content_text[type_close.start() :]
-        ).encode("utf-8")
-    ET.fromstring(content_updated)
+        ET.SubElement(content_root, f"{{{CONTENT_TYPES_NS}}}Default", {"Extension": "png", "ContentType": "image/png"})
+    content_updated = ET.tostring(content_root, encoding="utf-8", xml_declaration=True)
 
     return "".join(fragment), rels_updated, content_updated, media_entries, relationships
 
@@ -230,7 +222,15 @@ def write_package(target: Path, source: Path, replacements: dict[str, bytes], ad
             temporary.unlink()
 
 
-def package_appendix(generator, source: Path, target: Path, report_blocks, report_shapes, report_title: str) -> None:
+def package_appendix(
+    generator,
+    source: Path,
+    target: Path,
+    report_blocks,
+    report_shapes,
+    report_title: str,
+    minimal_package: bool = False,
+) -> None:
     with zipfile.ZipFile(source, "r") as package:
         original_document = package.read("word/document.xml")
         original_relationships = package.read("word/_rels/document.xml.rels")
@@ -254,6 +254,11 @@ def package_appendix(generator, source: Path, target: Path, report_blocks, repor
         "docProps/core.xml": generator.core_with_title(original_core, report_title),
     }
     write_package(target, source, replacements, media)
+    if minimal_package:
+        from entrega.docx_minimal import sanitize_standalone_docx
+
+        part_count, image_count = sanitize_standalone_docx(target)
+        print(f"{target.relative_to(ROOT)}: paquete autónomo mínimo; {part_count} entradas, {image_count} imágenes alcanzables")
     generator.validate_rendered(
         updated_document,
         report_blocks,
@@ -277,6 +282,12 @@ def standalone_document(generator, source: Path, target: Path, blocks, shapes, t
         "docProps/core.xml": generator.core_with_title(original_core, title),
     }
     write_package(target, source, replacements)
+    from entrega.docx_minimal import sanitize_standalone_docx
+
+    part_count, image_count = sanitize_standalone_docx(target)
+    print(f"{target.relative_to(ROOT)}: paquete autónomo mínimo; {part_count} entradas, {image_count} imágenes alcanzables")
+    with zipfile.ZipFile(target, "r") as package:
+        document = package.read("word/document.xml")
     generator.validate_rendered(document, blocks, shapes, 0, target.name, fragment_element_count(fragment))
     validate_docx(target)
 
@@ -301,6 +312,12 @@ def standalone_evidence_document(generator, source: Path, target: Path, blocks, 
         "docProps/core.xml": generator.core_with_title(original_core, title),
     }
     write_package(target, source, replacements, media)
+    from entrega.docx_minimal import sanitize_standalone_docx
+
+    part_count, image_count = sanitize_standalone_docx(target)
+    print(f"{target.relative_to(ROOT)}: paquete autónomo mínimo; {part_count} entradas, {image_count} imágenes alcanzables")
+    with zipfile.ZipFile(target, "r") as package:
+        document = package.read("word/document.xml")
     generator.validate_rendered(document, blocks, shapes, 0, target.name, fragment_element_count(report_fragment))
     validate_screenshot_appendix(target, image_relationships)
     validate_docx(target)
@@ -311,9 +328,48 @@ def validate_docx(path: Path) -> None:
         bad_entry = package.testzip()
         if bad_entry:
             raise ValueError(f"ZIP inválido en {path}: {bad_entry}")
-        ET.fromstring(package.read("word/document.xml"))
-        ET.fromstring(package.read("word/_rels/document.xml.rels"))
-        ET.fromstring(package.read("[Content_Types].xml"))
+        names = set(package.namelist())
+        for name in names:
+            if name.endswith((".xml", ".rels")) or name == "[Content_Types].xml":
+                ET.fromstring(package.read(name))
+            if not name.endswith(".rels"):
+                continue
+            relationship_root = ET.fromstring(package.read(name))
+            if name == "_rels/.rels":
+                source_directory = ""
+            else:
+                relationship_directory, relationship_filename = name.rsplit("/_rels/", 1)
+                source_part = posixpath.join(relationship_directory, relationship_filename[: -len(".rels")])
+                source_directory = posixpath.dirname(source_part)
+            for relationship in relationship_root:
+                if relationship.attrib.get("TargetMode") == "External":
+                    continue
+                target = relationship.attrib.get("Target", "")
+                target_part = (
+                    posixpath.normpath(target.lstrip("/"))
+                    if target.startswith("/")
+                    else posixpath.normpath(posixpath.join(source_directory, target))
+                )
+                if target_part not in names:
+                    raise ValueError(f"Destino de relación inexistente en {path}: {name} → {target_part}")
+        document = ET.fromstring(package.read("word/document.xml"))
+        relationships = ET.fromstring(package.read("word/_rels/document.xml.rels"))
+        relationship_ids = [node.attrib.get("Id", "") for node in relationships]
+        if len(relationship_ids) != len(set(relationship_ids)):
+            raise ValueError(f"Relaciones duplicadas en {path}")
+        referenced_ids = {
+            value
+            for node in document.iter()
+            for attribute, value in node.attrib.items()
+            if attribute.startswith(f"{{{R}}}")
+        }
+        missing_relationships = referenced_ids - set(relationship_ids)
+        if missing_relationships:
+            raise ValueError(f"Referencias OOXML sin relación en {path}: {sorted(missing_relationships)}")
+        if path.name in {SCRIPT_DOCX.name, EVIDENCE_DOCX.name, SECTION_DOCX.name}:
+            from entrega.docx_minimal import validate_minimal_docx
+
+            validate_minimal_docx(path)
 
 
 def validate_screenshot_appendix(path: Path, new_relationships: list[tuple[str, str]]) -> None:
@@ -352,6 +408,11 @@ def validate_screenshot_appendix(path: Path, new_relationships: list[tuple[str, 
             package_name = f"word/{target}"
             if package_name not in names:
                 raise ValueError(f"Destino de imagen inexistente en {path}: {package_name}")
+            image_bytes = package.read(package_name)
+            image_dimensions(image_bytes)
+            source_filename = Path(target).name.removeprefix("prototipo-")
+            if image_bytes != (SCREENSHOT_DIR / source_filename).read_bytes():
+                raise ValueError(f"La captura empaquetada no coincide con la fuente actual: {package_name}")
         blip_ids = {
             node.attrib.get(f"{{{R}}}embed")
             for node in document.iter(f"{{{A}}}blip")
@@ -424,6 +485,7 @@ def main() -> None:
         evidence_blocks,
         evidence_shapes,
         "Sección 4 — Validación y anexo de evidencias del prototipo",
+        minimal_package=True,
     )
     validate_docx(SCRIPT_DOCX)
     for path in (CHAPTER_DOCX, SECTION_DOCX, EVIDENCE_DOCX):

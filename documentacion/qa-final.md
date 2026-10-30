@@ -58,6 +58,8 @@ No se enviaron correos, mensajes u otras notificaciones externas. «Registrada»
 
 ## Guion y preparación de video — no es ensayo humano
 
+**Adenda editorial posterior:** el guion de entrega ajustó B4/B5 a **400 palabras** (84/82/78/77/79), manteniendo 58 s × 5 = 290 s presupuestados. Los JSON conservan abajo su propuesta original de 413 palabras como historial; no miden ni validan la duración del nuevo texto. Véase [`cierre-video.md`](cierre-video.md).
+
 La propuesta almacenada en `rehearsal.json` divide el recorrido en cinco clips de **58 s** cada uno, **290 s** de presupuesto total y **413 palabras** de locución previstas. Esas cifras son editoriales: el propio JSON aclara que la automatización de Playwright no mide duración humana o del video. El storyboard anterior de `plan-qa-video.md` registra otro presupuesto de diseño (291 s y 401 palabras); ninguno de los dos se presenta como duración real observada.
 
 Queda pendiente la lectura humana cronometrada, ajustar/editar la locución, grabar/capturar el video real y revisar el montaje final (duración ≤ 300 s). No se grabó video ni se solicitó aprobación humana.
@@ -70,3 +72,15 @@ Queda pendiente la lectura humana cronometrada, ajustar/editar la locución, gra
 - Sin envíos externos y sin video real, la presentación debe mantener la leyenda «Prototipo académico local · datos sintéticos · avisos registrados, sin envíos externos».
 
 **Conclusión técnica:** la validación automatizada definida para el alcance implementado cerró con npm test 48/48, build correcto, E2E 50/50 y harness 3/3; no se observaron bugs críticos. La observación F18 es puntual y F17 conserva una brecha de aserción. Sigue pendiente únicamente la lectura humana cronometrada, edición y grabación/captura del video real; no se afirma ensayo humano ni video grabado. No se enviaron notificaciones externas ni se modificaron documentos originales.
+
+## Adenda de coordinación — observaciones puntuales posteriores
+
+Se conserva sin cambios el resultado histórico de la corrida aceptada del puerto 3182 (48/48 backend/API, build de 1594 módulos, 50/50 E2E —27 navegador y 23 API-only— y 3/3 harness) y los JSON de evidencia. Coordinación comunicó una repetición adicional de **50/50 E2E en el puerto 3183**; es un reporte de coordinación, no una corrida realizada o verificada independientemente en esta etapa. No se reejecutó la aplicación.
+
+### F17 — métrica «Pedidos demorados»
+
+**Procedencia:** reporte de coordinación del 2026-10-30 UTC, fuera de la suite persistente. Se usó `createApp` con SQLite privado temporal; un pedido recibió fecha de entrega de **ayer** mediante **fixture automatizada únicamente**. En Chromium headless, luego del login de `lorena` y la navegación a Resumen, la métrica `Pedidos demorados` mostró `metric-value` **1** y el detalle indicó **fecha vencida**. La lectura API `orders.filter(delayed).length` devolvió **1**. Se informaron **cero `pageerror`** y limpieza completa. No se informó captura.
+
+Es una observación técnica puntual que complementa el reporte histórico de la brecha de aserción Dashboard; no se añade a los 50 casos, no es un E2E persistente y no demuestra cobertura general de combinaciones, roles o fechas.
+
+F18 continúa como la observación técnica puntual previamente comunicada: catálogo Chromium headless, SQLite `:memory:`, tres tarjetas; ART-001 deja una (costo 60, BOM 2 g de hilado negro), búsqueda sin resultados y restauración al limpiar filtros; cero `pageerror`, limpieza completa, sin captura ni test E2E persistente. Ambas observaciones se identifican como reportes de coordinación. `evidencias/qa-final/validation.json` y `rehearsal.json` permanecen intactos.

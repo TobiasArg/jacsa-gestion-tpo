@@ -1,11 +1,11 @@
 # Guía de demostración — JACSA Gestión
 
-**Actualizado:** 2026-10-27. **Estado:** prototipo local implementado. Esta guía reproduce el recorrido con los controles actuales de `src/`. El resultado de la QA en curso, los recuentos de pruebas y la frescura de las capturas se consultan en el registro de validación que prepare el coordinador; no se afirman en este documento.
+**Actualizado:** 2026-10-30 UTC. **Estado:** prototipo local implementado y QA final registrada. La corrida final informa 48/48 pruebas backend/API, build correcto, 50/50 E2E (27 navegador y 23 API-only) y 3/3 harness; el detalle y sus límites constan en [QA final](qa-final.md). Esta guía reproduce el recorrido con los controles actuales de `src/`; no declara que se haya ensayado con voz humana ni grabado video.
 
 ## 1. Puesta en marcha
 
 - Node **24.13**. El aviso experimental de `node:sqlite` es aceptable: el almacenamiento es local y no debe usarse en producción.
-- Desde `prototipo/`, ejecutar:
+- Desde `prototipo/`, para la demo habitual en 3001, ejecutar:
 
 ```text
 npm install
@@ -15,10 +15,22 @@ JACSA_DEMO=1 npm start
 
 - Abrir **`http://127.0.0.1:3001`**. Usar ese host exacto y no alternar con `localhost`: la cookie de sesión queda asociada al host.
 - Verificación: `curl http://127.0.0.1:3001/api/health` debe devolver `{"ok":true}`.
-- `JACSA_DEMO=1` habilita el reinicio de la demo. No usar en producción.
+- `JACSA_DEMO=1` habilita el reinicio de la demo. No usar en producción. El arranque habitual usa `prototipo/data/jacsa.sqlite`; no se debe reiniciar esa base para grabar.
 - El puerto **5173 está ocupado por un proceso ajeno**: no cerrarlo. La demo usa la app compilada en **3001**.
-- Si se necesita la UI de desarrollo, es opcional y reemplaza a `npm start`: una terminal con `npm run dev` (API en 3001) y otra con `npm run dev:ui -- --port 5174` (el proxy `/api` sigue apuntando a 3001). Abrir `http://127.0.0.1:5174`. No bloquear la demo si no está disponible.
+- No recomendar la UI de desarrollo en **5174** para los flujos con API: el servidor solo permite en desarrollo el origen loopback **5173**, y 5173 está ocupado. No detener el proceso ajeno ni afirmar que 5174 funciona para mutaciones; usar la aplicación compilada en el mismo origen que la API.
 - Las claves son de demostración, públicas solo en este entorno local. El responsable de la demo las custodia y autoriza el reinicio.
+
+### Instancia separada para grabación (instrucción para el grupo)
+
+Para no alterar la demo habitual ni su base, preparar una instancia compilada separada. Desde `prototipo/`, construir primero y verificar que el puerto 3002 esté libre; si `lsof` muestra un listener, no detenerlo y coordinar otro momento/puerto antes de seguir:
+
+```sh
+npm run build
+lsof -nP -iTCP:3002 -sTCP:LISTEN
+API_PORT=3002 JACSA_DB=data/grabacion.sqlite JACSA_DEMO=1 npm start
+```
+
+Abrir **`http://127.0.0.1:3002`** y comprobar `http://127.0.0.1:3002/api/health`. `JACSA_DB` es relativo al directorio `prototipo/` y separa esta instancia de `data/jacsa.sqlite` en 3001. Verificar el proceso, el puerto y la ruta de base antes de cualquier reset; resetear solo la base de grabación con autorización, nunca la instancia/base habitual de 3001. No hace falta cerrar ni modificar el proceso que ya use 3001.
 
 ## 2. Datos y cuentas del seed
 
@@ -68,18 +80,19 @@ Notas:
 - La misma cotización no debe generar un segundo pedido; la conversión es idempotente por cotización.
 - El pedido no pasa a Listo si falta cantidad o si el control de calidad no está marcado.
 - No hay orden de compra, remito, facturación, ARCA ni reportes en este alcance.
+- El paso 6 documenta la demo general y permite consultar el evento también desde Rodrigo. En el video, B5 es solo el portal de Cliente Alfa: seguir el storyboard y no mostrar la Bandeja de avisos interna.
 
 ## 5. Sesiones y navegador
 
-- Abrir siempre **`http://127.0.0.1:3001`**; no mezclar con `localhost`.
+- Para la demo habitual, abrir **`http://127.0.0.1:3001`**; para grabación, usar **`http://127.0.0.1:3002`** según el paso anterior. Usar perfiles de navegador separados entre instancias: la cookie se limita al host, no al puerto, por lo que iniciar sesión en 3002 desde el perfil que usa 3001 puede reemplazar su token. Dentro de cada perfil no mezclar con `localhost` ni cambiar host.
 - Usar un perfil, contexto o navegador por rol. En Chrome, dos ventanas de incógnito del mismo perfil **comparten cookies**: no asumirlas independientes. Usar perfiles distintos o navegadores distintos.
 - Si se usan pestañas del mismo navegador, hacer logout/login secuencial y verificar nombre y rol visibles. No describirlo como un flujo de un solo clic.
-- Para la versión de 5 min, dejar credenciales y formularios preparados; el login consume tiempo fuera de los ~10 s de acción.
-- Si se usa la UI opcional en 5174, mantener el host `127.0.0.1` y no alternar puertos durante una misma sesión.
+- Para los clips de 58 s, dejar los perfiles preautenticados: el login queda fuera de cámara. El presupuesto de cada bloque incluye rótulo, acción/voz y transición/cierre; no aplica la antigua meta de ~10 s de acción.
+- No usar Vite en 5174 para mutaciones: el validador de origen del API no acepta ese puerto. Grabar con la UI compilada servida por la instancia seleccionada.
 
 ## 6. Reinicio de la demo
 
-- Solo con `JACSA_DEMO=1`; la API admite manager o tecnología. En la interfaz, la acción está en **Usuarios y demo** (Sergio).
+- Solo con `JACSA_DEMO=1`; la API admite manager o tecnología. En la interfaz, la acción está en **Usuarios y demo** (Sergio). Para grabar, limitar el reset a `data/grabacion.sqlite` en 3002 tras verificar la instancia; no reiniciar el SQLite habitual `data/jacsa.sqlite` de 3001.
 - La confirmación debe escribirse exactamente **`REINICIAR DEMO`**.
 - Borra solicitudes, cotizaciones, pedidos, historial, avisos y movimientos de la base demo; restaura el stock del seed y recrea los dos pedidos de demostración.
 - **Conserva la sesión de quien ejecuta el reinicio.** No describirlo como «cierra todas las sesiones»: el reset no elimina la tabla de sesiones. Para invalidar otras sesiones, deshabilitar la cuenta desde **Usuarios y demo**, que sí borra sus sesiones.
@@ -97,7 +110,7 @@ Notas:
 
 ## 8. Capturas y pruebas
 
-Hay **7 capturas existentes** en `evidencias/prototipo/`:
+Se conservan **7 capturas anteriores** en `evidencias/prototipo/`:
 
 - `01cotizador.png`
 - `02cotizacion.png`
@@ -107,9 +120,9 @@ Hay **7 capturas existentes** en `evidencias/prototipo/`:
 - `06portalcliente.png`
 - `07mobilelogin.png`
 
-La QA puede reemplazarlas mientras refresca la corrida final. No afirmar que son la versión definitiva ni que la QA actual terminó. Para 4.5/4.6, usar el registro de validación del coordinador; no copiar recuentos de pruebas ni declarar aprobadas capturas o pruebas que no se hayan revisado.
+La evidencia más reciente es la corrida final registrada en [`qa-final.md`](qa-final.md): incluye siete capturas integradas y diez PNG de entrada/salida B1–B5/C0–C4 en [`evidencias/qa-final/rehearsal/`](../evidencias/qa-final/rehearsal/), junto con el [`rehearsal.json`](../evidencias/qa-final/rehearsal/rehearsal.json). Son capturas reales de UI automatizada; el JSON identifica en cada una el rol, bloque y checkpoint. No son fotogramas de un video ni mediciones de voz.
 
-El build y las pruebas de backend/E2E tienen su registro en la coordinación. Esta guía no fija recuentos ni resultados vigentes.
+La distribución que se llevará a grabación coloca el plan de máquina al cierre de B3 y deja B4 para el operario. Esto sigue las acciones y capturas de la QA final (minicorte de Rodrigo en B3 y entrada del operario en C3); `plan-qa-video.md` §8 conserva como antecedente el storyboard anterior que ubicaba planificación en B4. No se inventaron capturas para resolver esa diferencia.
 
 ## 9. Privacidad, diseño y límites
 
@@ -123,9 +136,11 @@ El build y las pruebas de backend/E2E tienen su registro en la coordinación. Es
 
 - [ ] Node 24.13; aviso experimental de `node:sqlite` aceptado.
 - [ ] `npm install` y `npm run build` sin errores.
-- [ ] `JACSA_DEMO=1 npm start` activo; `http://127.0.0.1:3001` abre.
-- [ ] `/api/health` responde `{"ok":true}`.
+- [ ] Demo habitual (si se usa): `JACSA_DEMO=1 npm start` en `http://127.0.0.1:3001`; no resetearla para grabar.
+- [ ] Para grabar: `npm run build`, puerto 3002 comprobado libre, y `API_PORT=3002 JACSA_DB=data/grabacion.sqlite JACSA_DEMO=1 npm start`.
+- [ ] La instancia de grabación abre en `http://127.0.0.1:3002` y `/api/health` devuelve `{"ok":true}`.
 - [ ] Puerto 5173 ajeno intacto; no se intentó liberar.
+- [ ] Vite 5174 no se usa para flujos con API; el origen no está permitido.
 - [ ] Cuentas `cliente`, `rodrigo`, `lorena`, `operario` y `sergio` probadas.
 - [ ] Perfiles/contextos separados; sin mezcla de cookies.
 - [ ] Reinicio autorizado; se comprobó que conserva la sesión iniciadora.
@@ -134,4 +149,12 @@ El build y las pruebas de backend/E2E tienen su registro en la coordinación. Es
 - [ ] Stock 400/200; ingreso 200/100; faltantes 176/88.
 - [ ] Dos pedidos del seed sin consumo de INS-NEGRO/INS-ALMA.
 - [ ] Controles reales y diálogos verificados en el navegador.
-- [ ] Ensayo cronometrado; ~10 s de acción por segmento.
+- [ ] Ensayo del montaje por bloques de 58 s, incluidos rótulos y transiciones; objetivo total 285–295 s y máximo 300 s.
+
+## 11. Grabación segmentada y regrabación
+
+Para integrar el diseño definitivo de cinco clips autoconclusivos y el procedimiento de pregrabación, replay y regrabación C0–C4, seguir [`diseno-video-5min.md`](diseno-video-5min.md), [`storyboard-video.md`](storyboard-video.md), [`guion-presentacion.md`](guion-presentacion.md) y [`ensayo-video.md`](ensayo-video.md). Cada bloque dura 58 s en el presupuesto (290 s total, incluidos títulos y transiciones); el grupo debe ensayar con cronómetro. Playwright automatizó acciones y checkpoints, pero esa duración no demuestra un ensayo humano ni un video existente.
+
+Antes de cualquier reset para grabar, verificar que se usa la instancia separada en 3002 y su base `data/grabacion.sqlite`, y conseguir autorización expresa. No reiniciar `127.0.0.1:3001` ni `data/jacsa.sqlite`; no ejecutar SQL ni restaurar el JSON como snapshot. Para una regrabación se reinicia solo la base de grabación y se reproducen los bloques previos por UI (o endpoints ordinarios solo para preparar fuera de cámara); los IDs se vuelven a obtener en cada ejecución.
+
+La aplicación sincroniza perfiles distintos cada 8 s. Una mutación hecha por un perfil refresca su propia vista al finalizar; el otro perfil/contexto puede necesitar esperar un ciclo de polling, recargar o volverse visible. No anunciar que dos perfiles se actualizan instantáneamente ni duplicar una operación porque el segundo aún no la muestra.

@@ -79,3 +79,9 @@ El archivo [`rehearsal.json`](../evidencias/qa-final/rehearsal/rehearsal.json) e
 | B5 — Seguimiento cliente | C4 → C4 | Portal Cliente Alfa muestra pedido Listo 288/288 y tres avisos locales como Registrada; no afirma correo enviado. | `rehearsal/B5-C4-entrada.png`, `rehearsal/B5-C4-salida.png`; snapshot de salida conserva el mismo estado. |
 
 El rehearsal ejecutado reinicia únicamente mediante `POST /api/demo/reset` autorizado por el launcher, toma snapshots de lectura mediante `GET /api/bootstrap` y realiza el historial por acciones normales de API/UI. El JSON documenta `databaseAccess: "Solo endpoints normales; sin SQL ni acceso directo a SQLite."` No se insertaron ni modificaron estados con SQL para construir B1–B5. Las fixtures SQL de la suite QA se limitan a preparar/recuperar contacto o fecha de demora en tests temporales; su aislamiento y manifest se describen en [`qa-final.md`](qa-final.md).
+
+## Adenda F17 — métrica de pedidos demorados (2026-10-30 UTC)
+
+**Procedencia:** reporte puntual de coordinación, fuera de la suite persistente. `createApp` con SQLite privado temporal; un pedido quedó con fecha de entrega de **ayer** mediante **fixture automatizada únicamente**. En Chromium headless, login `lorena` → Resumen mostró `Pedidos demorados` con `metric-value` **1** y detalle **fecha vencida**; la comprobación API `orders.filter(delayed).length` devolvió **1**. Se informaron cero `pageerror` y limpieza completa. No se informó captura.
+
+Esta observación no se suma al conteo histórico de 50/50, no es un E2E persistente y no demuestra cobertura general de Dashboard. Complementa el reporte de brecha de aserción de la fila F17 sin cambiar esa fila ni el JSON histórico. La fecha de entrega de ayer se preparó únicamente mediante la fixture automatizada temporal; no se modificó una base demo persistente.

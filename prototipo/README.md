@@ -16,14 +16,16 @@ Abrir http://127.0.0.1:3001. Base persistente: `data/jacsa.sqlite`. `Ctrl+C` det
 
 ## Desarrollo
 
-En una terminal: `npm run dev`. En otra: `npm run dev:ui -- --port 5174`. La interfaz usa un proxy para acceder a la API del puerto 3001. En esta máquina 5173 estaba ocupado por otro proyecto y no se modificó ese proceso.
+`npm run dev` inicia la API en 3001. `npm run dev:ui` inicia Vite en 5173 (`strictPort`) y su proxy apunta a esa API. En este entorno 5173 está ocupado por otro proyecto: no detenerlo ni intentar desplazarlo. El puerto 5174 no está configurado como sustituto y el API rechaza mutaciones desde ese origen; para el flujo completo usar la aplicación compilada en 3001.
 
 ## Pruebas
 
-- `npm test`: 33 pruebas de API, permisos, persistencia y negocio.
-- `npm run build`: TypeScript y compilación de interfaz.
-- `npx playwright install chromium`: instalar navegador de prueba si aún no está disponible.
-- `npm run test:e2e`: cinco pruebas de navegador; usa su propia base temporal y necesita el puerto 3001 libre.
+- `npm test`: la última corrida integrada registrada aprobó **48/48** pruebas backend/API.
+- `npm run build`: TypeScript y Vite; la corrida registrada compiló **1594 módulos**.
+- `JACSA_E2E_PORT=3182 JACSA_EVIDENCE_DIR=../evidencias/qa-final npm run test:e2e`: la última corrida aceptada aprobó **50/50** (27 casos de navegador/UI y 23 API-only) con base temporal privada; coordinar/confirmar que el puerto elegido esté libre antes de ejecutar.
+- `node --test tests/e2e/harness.test.mjs`: la corrida registrada aprobó **3/3** pruebas de infraestructura.
+
+El cierre QA consta en [`../documentacion/qa-final.md`](../documentacion/qa-final.md). La suite se acepta como resultado ya registrado; las cifras no son una instrucción para reejecutar sobre una base persistente.
 
 Los archivos `server/` implementan las reglas y autorización. `src/` contiene vistas por rol. `tests/` conserva pruebas reproducibles. `CONTRATO.md` describe la integración; no reemplaza las pruebas ni constituye una especificación productiva.
 

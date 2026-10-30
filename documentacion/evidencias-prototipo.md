@@ -61,3 +61,14 @@ RF01/RF02 se usaron solo mediante lectura de catálogo/ficha seed; no se ejecut�
 5. `05operariocola.png` — cola, avance y estado Listo.
 6. `06portalcliente.png` — portal y avisos registrados.
 7. `07mobilelogin.png` — login en configuración móvil.
+
+## Adenda de cierre técnico — 2026-10-30 UTC
+
+Esta adenda conserva el registro original del 2026-10-27 y actualiza su estado a partir del cierre integrado informado por coordinación. Las cifras anteriores **33/33 backend y 5/5 E2E** pertenecen a esa corrida histórica; el cierre más reciente informado es **48/48 backend/API**, **build correcto con 1594 módulos**, **50/50 E2E** (27 casos de navegador/UI y 23 API-only) y **3/3 harness**. La corrida completa registrada usó el puerto 3182 y base temporal privada. Coordinación también comunicó una repetición posterior de **50/50 en el puerto 3183**; se consigna como reporte de coordinación, no como una ejecución independiente de esta adenda. No se volvió a ejecutar la aplicación para actualizar este registro. El detalle y los límites de la corrida aceptada siguen en [`qa-final.md`](qa-final.md); el JSON `validation.json` y el historial de resultados no se alteran.
+
+### Observaciones puntuales comunicadas por coordinación
+
+- **F18 — Catálogo interno:** se conserva la revisión Chromium headless con `createApp`, SQLite `:memory:` y `listen(0)`: login `rodrigo`, 3 tarjetas iniciales; filtro ART-001 deja 1 tarjeta (costo 60 y BOM de 2 g de hilado negro); búsqueda vacía y limpieza restauran el catálogo. Sin `pageerror`, limpieza completa. Fue una observación puntual, fuera de la suite, sin captura y sin E2E persistente.
+- **F17 — Métrica de pedidos demorados (reporte 2026-10-30 UTC):** coordinación informó una instancia privada temporal con `createApp` y SQLite temporal; un pedido quedó con fecha de entrega de **ayer** por una **fixture automatizada únicamente**. En Chromium headless, login de `lorena` → Resumen mostró `Pedidos demorados` con `metric-value` **1** y detalle de **fecha vencida**. La comprobación API `orders.filter(delayed).length` también dio **1**; hubo **cero errores JavaScript (`pageerror`)** y limpieza completa. No se informó captura. Es una observación técnica puntual fuera de la suite, no un E2E persistente ni una nueva cobertura general del F17.
+
+Ambas observaciones se atribuyen a coordinación; no modifican el resultado histórico de suites ni acreditan aceptación de usuarios. La adenda no edita `evidencias/qa-final/validation.json` ni `rehearsal.json`.
