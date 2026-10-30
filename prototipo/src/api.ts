@@ -13,6 +13,22 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, method: 'GET' | 'POST', body?: unknown): Promise<T> {
+  if (import.meta.env.VITE_BROWSER_DEMO === 'true') {
+    let result: { status: number; body: unknown };
+    try {
+      const { demoRequest } = await import('./demo/transport.mjs');
+      result = await demoRequest(path, method, body);
+    } catch {
+      throw new ApiError('No se pudo iniciar la demo local. Comprueba el almacenamiento del navegador e intenta otra vez.', 0);
+    }
+    if (result.status < 200 || result.status >= 300) {
+      const problem = result.body && typeof result.body === 'object' ? result.body as { error?: unknown; code?: unknown } : {};
+      const message = typeof problem.error === 'string' ? problem.error : `La solicitud no pudo completarse (${result.status}).`;
+      throw new ApiError(message, result.status, typeof problem.code === 'string' ? problem.code : undefined);
+    }
+    return result.body as T;
+  }
+
   const headers = new Headers({ Accept: 'application/json' });
   const init: RequestInit = { method, credentials: 'same-origin', headers };
   if (method === 'POST') {
