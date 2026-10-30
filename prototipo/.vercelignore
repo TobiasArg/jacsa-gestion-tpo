@@ -15,3 +15,4 @@ playwright.config.ts
 .env.*
 .vercel/
 *.log
+playwright.demo.config.ts
